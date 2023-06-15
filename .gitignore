@@ -1,0 +1,12 @@
+poetry.lock
+.idea
+data_zenodo
+data_ptbxl
+#eda.ipynb
+pqrst_modelsig.ipynb
+__pycache__
+
+
+
+
+

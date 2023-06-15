@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "ecg-analyzer"
+version = "0.1.0"
+description = ""
+authors = ["spark71 <noxdrummer@gmail.com>"]
+readme = "README.md"
+packages = [{include = "ecg_analyzer"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pandas = "^2.0.2"
+numpy = "^1.24.3"
+scikit-learn = "^1.2.2"
+peakutils = "^1.3.4"
+matplotlib = "^3.7.1"
+h5py = "^3.8.0"
+neurokit2 = "^0.2.4"
+ipython = "^8.14.0"
+jupyter = "^1.0.0"
+seaborn = "^0.12.2"
+statsmodels = "^0.14.0"
+sympy = "^1.12"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

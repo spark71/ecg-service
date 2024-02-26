@@ -1,3 +1,10 @@
+# Запуск сервиса 
+
+```
+uvicorn main:app --reload
+```
+
+
 # Источники данных
 
 1. Zenodo: https://zenodo.org/records/3765780

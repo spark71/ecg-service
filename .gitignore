@@ -2,11 +2,15 @@ poetry.lock
 .idea
 data_zenodo
 data_ptbxl
-#eda.ipynb
-#*.ipynb
 pqrst_modelsig.ipynb
 __pycache__
 
+# dotenv
+.env
+
+# virtualenv
+venv/
+ENV/
 
 
 

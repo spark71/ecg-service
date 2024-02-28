@@ -1,9 +1,8 @@
-from fastapi import FastAPI
-
+from typing import Optional, Annotated
+from fastapi import FastAPI, Depends
+from pydantic import BaseModel
 
 app = FastAPI()
 
 
-@app.get("/home")
-def get_home():
-    return "Hello World!"
+

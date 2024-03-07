@@ -1,7 +1,5 @@
 # Установка менеджера пакетов (windows)
-1) ```powershell
-(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
-```
+1) `(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -`
 2) Добавить `%APPDATA%\Python\Scripts` в системную переменную окружения PATH
 3) После установки `poetry --version`
 https://python-poetry.org/docs/basic-usage/ 

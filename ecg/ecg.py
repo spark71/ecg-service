@@ -1,11 +1,31 @@
+import enum
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import peakutils
+from enum import Enum
 from sklearn.metrics import mean_absolute_error
 import seaborn as sns
 import h5py
 
+# Папка с проектом
+ROOT_DIR = r'C:\Users\User\PycharmProjects\ecg-service'
+
+@enum.unique
+class Datasets(enum.Enum):
+    """
+    Enumeration of datasets
+    """
+    # ptbxl
+    ptbxl = 'data/ptbxl/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.3/ptbxl_database.csv'
+    ptbxl_scp_statements = 'data/ptbxl/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.3/scp_statements.csv'
+    # code-test
+    code_test = 'data/CODE-test-12-lead-ecg-dataset/ecg_tracings.hdf5'
+    code_test_attrs = 'data/CODE-test-12-lead-ecg-dataset/attributes.csv'
+    @property
+    def path(self):
+        return os.path.join(ROOT_DIR, self.value)
 
 class EcgLoader:
     def load_sample_(self):
@@ -17,15 +37,17 @@ class EcgSignal:
         pass
 
     @staticmethod
-    def take_sample_zenodo(person_idx: int, zone: str = 'II', show: bool = False,
+    def take_sample_codetest( person_idx: int, path: str = Datasets.code_test.path, zone: str = 'II', show: bool = False,
                            prep: bool = True) -> np.ndarray:
-        """
+        """ CODE-test-12-lead-ecg-dataset
+        Описание:
+
         :idx:  индекс записи экг
         :zone: отведение
         :show: график
         ->    значения записи экг
         """
-        file = h5py.File('data_zenodo/ecg_tracings.hdf5', 'r')
+        file = h5py.File(path, 'r')
         file.keys()
         data = file.get('tracings')
         ecg_data = pd.DataFrame(data=data[person_idx]).rename(
@@ -35,16 +57,12 @@ class EcgSignal:
         ecg_sample = ecg_data[zone].values
         if prep:
             ecg_sample = EcgSignal.del_zspan(ecg_sample)
-
         if show:
             plt.figure(figsize=(18, 8))
             fig, ax = plt.subplots()
-
-            # plt.plot(ecg_data['v2'])
             sns.lineplot(data=ecg_data[zone], color='black')
             plt.title(zone)
             plt.plot()
-
         return ecg_sample
 
     @staticmethod
@@ -59,7 +77,6 @@ class EcgSignal:
             path = 'ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1/records100/'
         if person_idx > 21837 or person_idx < 1:
             raise ValueError('Wrong index, 21837-last')
-
         len_pidx = abs(len(str(person_idx)) - 5)
         if len_pidx !=  0:
             str_idx = '0' * len_pidx

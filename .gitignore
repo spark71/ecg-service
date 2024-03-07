@@ -4,12 +4,12 @@ data_zenodo
 data_ptbxl
 pqrst_modelsig.ipynb
 __pycache__
+
+#FILES
 *.hdf5
 *.dat
 *.hea
-
-# dotenv
-.env
+*.env
 
 # virtualenv
 venv/

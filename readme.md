@@ -6,7 +6,7 @@ https://python-poetry.org/docs/basic-usage/
  
 # Запуск сервиса
 ```
-uvicorn main:app --reload
+uvicorn app.main:app --port 8000 --reload
 ```
 # Источники данных
 

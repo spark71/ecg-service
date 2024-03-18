@@ -4,6 +4,7 @@ data_zenodo
 data_ptbxl
 pqrst_modelsig.ipynb
 __pycache__
+app/uploads
 
 #FILES
 *.hdf5

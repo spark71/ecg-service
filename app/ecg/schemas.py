@@ -8,7 +8,7 @@ class EcgSchema(BaseModel):
     gender: str
     age: int
     device: str
-    metadata: Optional[dict]
+    # metadata: Optional[dict]
     description: Optional[str] = None
     dataset: Optional[dict]
 

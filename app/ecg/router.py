@@ -71,7 +71,7 @@ def post_basic_form(request: Request, username: str = Form(...), password: str =
 
 
 
-# @router.get('/get_signals')
+# @router.get('/get_signals')пше
 @router.get('/signals')
 async def get_signals():
     """

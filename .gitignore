@@ -5,6 +5,7 @@ data_ptbxl
 pqrst_modelsig.ipynb
 __pycache__
 app/uploads
+eda/.ipynb_checkpoints/
 
 #FILES
 *.hdf5

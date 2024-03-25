@@ -6,6 +6,12 @@ from app.ecg.router import router as ecg_router
 from app.pages.router import router as page_router
 from pathlib import Path
 
+import missingno as msno
+from nltk.corpus import stopwords
+import spacy
+
+spacy
+
 
 
 app = FastAPI()

@@ -2,15 +2,9 @@ from fastapi import Form, File, UploadFile
 from pydantic import BaseModel
 
 
-# https://stackoverflow.com/a/60670614
 class DataForm(BaseModel):
-    # username: str
-    # password: str
-    # file: UploadFile
     id: int
-    # leads_nums: List[int | str]
     leads_nums: int
-    # leads_values: UploadFile
     gender: str
     age: int
     device: str

@@ -18,7 +18,7 @@ app = FastAPI()
 # app.mount("/static", StaticFiles(directory="app/static"))
 # app.mount(r"C:\Users\User\PycharmProjects\ecg-service\app\static", app=StaticFiles(directory=r"\app\static"))
 app.include_router(ecg_router)
-app.include_router(page_router)
+# app.include_router(page_router)
 
 
 

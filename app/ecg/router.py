@@ -1,11 +1,13 @@
-from typing import List
-from fastapi import APIRouter, UploadFile, File, Depends, Request, Response, Form
-from pydantic import Json, BaseModel
+from fastapi import APIRouter, Depends, Request
+import random
+from typing import Optional
+import numpy as np
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from app.ecg.ecg import ROOT_DIR
-from app.ecg.schemas import EcgSchema
-# from app.main import templates
+from app.ecg.form_schema import DataForm
+import io
+
 
 UPLOAD_DIR = ROOT_DIR + 'app/ecg/uploads'
 templates = Jinja2Templates(directory="app/templates")
@@ -21,57 +23,51 @@ router = APIRouter(
     tags=['ЭКГ-сигналы']
 )
 
+
+
+#TODO:
+# add ecg orm
+# add /get_signal_info
+
 signals = []
-@router.post('/upload_signal')
-async def upload_signal(ecg_metadata: EcgSchema = Depends(), file_upload: UploadFile = File(...)):
-    """
-    Загрузка сигнала в сервис (БД) в форматах txt, dat, hea, csv
-    """
-    formats = ['dat', 'hea', 'csv', 'txt']
-    data = await file_upload.read()
-    await file_upload.close()
-    payload = {
-        "data": dict(ecg_metadata),
-        "file_upload": file_upload.filename,
-        "file_data": data,
-        "cleaned_file_data": data.decode('utf-8').replace('\n', ' ').replace('\r', ' ')
-    }
-    signals.append(payload)
-    # print(signals)
-    return payload
+latest_signal = None
+
+@router.get('/pages/add_sig', response_class=HTMLResponse)
+async def get_add_sig(request: Request):
+    return templates.TemplateResponse(name="add_form.html", context={'request': request})
 
 
-@router.post('/add_signal')
-async def upload_signal(ecg_metadata: EcgSchema = Depends(), file_upload: UploadFile = File(...)):
-    """
-    Загрузка сигнала в сервис (БД) в форматах txt, dat, hea, csv
-    """
-    formats = ['dat', 'hea', 'csv', 'txt']
-    data = await file_upload.read()
-    await file_upload.close()
-    payload = {
-        "data": dict(ecg_metadata),
-        "file_upload": file_upload.filename,
-        "file_data": data,
-        "cleaned_file_data": data.decode('utf-8').replace('\n', ' ').replace('\r', ' ')
-    }
-    signals.append(payload)
-    # print(signals)
-    return payload
-
-@router.get('/basic', response_class=HTMLResponse)
-def get_basic_form(request: Request):
-    return templates.TemplateResponse("form.html", {"request": request})
-
-@router.post('/basic', response_class=HTMLResponse)
-def post_basic_form(request: Request, username: str = Form(...), password: str = Form(...)):
-    print(f'name: {username}')
-    print(f'passw: {password}')
-    return templates.TemplateResponse("form.html", {"request": request})
+@router.post('/pages/add_sig', response_class=HTMLResponse)
+async def post_add_sig(request: Request, form_data: DataForm = Depends(DataForm.as_form)):
+    print(form_data)
+    contents = await form_data.leads_values.read()
+    decoded_contents = contents.decode('utf-8')  # Декодирование байтов в строку
+    data = list(np.loadtxt(io.StringIO(decoded_contents), dtype=float))
+    signals.append(dict(form_data))
+    return templates.TemplateResponse(name="add_form.html", context={'request': request})
 
 
 
-# @router.get('/get_signals')пше
+@router.get('/get_signal_info')
+async def get_signal_info():
+    pass
+
+
+
+
+@router.get('/predict')
+async def predict(nn_model: Optional[str] = None) -> dict:
+    classes = ['STTC', 'NORM', 'MI', 'HYP', 'CD']
+    if nn_model is None:
+        result = {'signal_shape': signals[-1].shape, 'predicted_class': random.choice(classes)}
+    else:
+        result = nn_model.predict(latest_signal)
+
+    return result
+
+
+
+
 @router.get('/signals')
 async def get_signals():
     """
@@ -81,30 +77,6 @@ async def get_signals():
 
 
 
-@router.get('/predict_signal/{signal_id}')
-async def pred_signal(signal):
-    """
-    Классификация сигнала из списка загруженных по id
 
-    """
-    pass
-
-
-@router.get('/get_signal_info/{signal_id}')
-async def get_signal_info():
-    """
-    Получение информации о сигнале
-
-    """
-    pass
-
-# ------------------------------------------------------------------------
-class Item(BaseModel):
-    name: str
-    description: str
-
-@router.post("/files/")
-async def create_file_and_item(item: Item = Depends(), files: List[UploadFile] = File(...)):
-    return {"item": item, "file_name": [file.filename for file in files]}
 
 

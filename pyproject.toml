@@ -34,6 +34,8 @@ bs4 = "^0.0.2"
 nltk = "^3.8.1"
 spacy = "^3.7.4"
 fake2db = "^0.5.4"
+hrv-analysis = "^1.0.4"
+awsebcli = "^3.20.10"
 
 
 [build-system]

@@ -11,8 +11,8 @@ import h5py
 
 # Папка с проектом
 #
-# ROOT_DIR = r'C:\Users\User\PycharmProjects\ecg-tool-api\'
-ROOT_DIR = r'C:\Users\redmi\PycharmProjects\ecg-tool-api'
+ROOT_DIR = r'C:\Users\User\PycharmProjects\ecg-service'
+# ROOT_DIR = r'C:\Users\redmi\PycharmProjects\ecg-tool-api'
 
 
 

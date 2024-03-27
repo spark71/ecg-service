@@ -13,11 +13,10 @@ UPLOAD_DIR = ROOT_DIR + 'app/ecg/uploads'
 templates = Jinja2Templates(directory="app/templates")
 
 #TODO:
-# 1) Загрузка сигнала /upload_signal
-# 2) Get signals /get_signals
 # 3) Make prediction on uploaded signals /pred_signal/{ecg_id}
 #       - choose a model
 #       - make pred
+# height weight recording_date
 
 router = APIRouter(
     tags=['ЭКГ-сигналы']
@@ -27,10 +26,11 @@ router = APIRouter(
 
 #TODO:
 # add ecg orm
-# add /get_signal_info
+
 
 signals = []
 latest_signal = None
+
 
 @router.get('/pages/add_sig', response_class=HTMLResponse)
 async def get_add_sig(request: Request):
@@ -47,12 +47,9 @@ async def post_add_sig(request: Request, form_data: DataForm = Depends(DataForm.
     return templates.TemplateResponse(name="add_form.html", context={'request': request})
 
 
-
 @router.get('/get_signal_info')
 async def get_signal_info():
     pass
-
-
 
 
 @router.get('/predict')
@@ -64,8 +61,6 @@ async def predict(nn_model: Optional[str] = None) -> dict:
         result = nn_model.predict(latest_signal)
 
     return result
-
-
 
 
 @router.get('/signals')

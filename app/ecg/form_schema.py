@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 class DataForm(BaseModel):
     id: int
+    sample_rate: int
     leads_nums: int
     gender: str
     age: int
@@ -14,6 +15,7 @@ class DataForm(BaseModel):
     def as_form(
         cls,
         id: int = Form(...),
+        sample_rate: int = Form(...),
         leads_nums: int = Form(...),
         gender: str = Form(...),
         age: str = Form(...),
@@ -22,6 +24,7 @@ class DataForm(BaseModel):
     ):
         return cls(
             id = id,
+            sample_rate = sample_rate,
             leads_nums = leads_nums,
             gender = gender,
             age = age,

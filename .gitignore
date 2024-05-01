@@ -7,6 +7,10 @@ __pycache__
 app/uploads
 eda/.ipynb_checkpoints/
 
+data/ptbxl/records100
+data/ptbxl/records500
+data/ptbxl/npy_signals100/
+
 #FILES
 *.hdf5
 *.dat

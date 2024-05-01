@@ -8,11 +8,15 @@ from enum import Enum
 from sklearn.metrics import mean_absolute_error
 import seaborn as sns
 import h5py
+import torch
+from torch.utils.data import Dataset
+from nnAudio.features.cqt import CQT1992v2
+from models.config import CqtCFG, RawCfg
 
 # Папка с проектом
 #
-ROOT_DIR = r'C:\Users\User\PycharmProjects\ecg-service'
-# ROOT_DIR = r'C:\Users\redmi\PycharmProjects\ecg-tool-api'
+# ROOT_DIR = r'C:\Users\User\PycharmProjects\ecg-service'
+ROOT_DIR = r'C:\Users\redmi\PycharmProjects\ecg-tool-api'
 
 
 
@@ -30,6 +34,65 @@ class Datasets(enum.Enum):
     @property
     def path(self):
         return os.path.join(ROOT_DIR, self.value)
+
+
+class EcgDataset(Dataset):
+    def __init__(self, df, transform=None):
+        self.df = df
+        self.file_names = df['file_paths'].values
+        self.labels = df[RawCfg.target_col].values
+        # self.wave_transform = CQT1992v2(**RawCfg.qtransform_params)
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.df)
+
+    def apply_qtransform(self, waves, transform):
+        waves = np.hstack(waves)
+        waves = waves / np.max(waves)
+        waves = torch.from_numpy(waves).float()
+        image = transform(waves)
+        return image
+
+    def __getitem__(self, idx):
+        file_path = self.file_names[idx]
+        waves = np.load(file_path)
+        # image = self.apply_qtransform(waves, self.wave_transform)
+        # image = image.squeeze().numpy()
+        # if self.transform:
+        #     image = self.transform(image=image)['image']
+        label = torch.tensor(self.labels[idx]).float()
+        return waves, label
+
+
+def get_transforms(*, data='train'):
+    '''
+    Return Augmented Image tensor for training dataset
+    '''
+
+    if data == 'train':
+        return A.Compose(
+            [
+                # A.Resize(CFG.image_size,CFG.image_size),
+                # A.HorizontalFlip(p=0.3),
+                # A.VerticalFlip(p=0.3),
+                # A.Rotate(limit=180, p=0.3),
+                # A.RandomBrightness(limit=0.6, p=0.5),
+                # A.Cutout(
+                # num_holes=10, max_h_size=12, max_w_size=12,
+                # fill_value=0, always_apply=False, p=0.5
+                # ),
+                # A.ShiftScaleRotate(
+                #    shift_limit=0.25, scale_limit=0.1, rotate_limit=0
+                # ),
+                ToTensorV2(p=1.0),
+            ]
+        )
+
+    elif data == 'valid':
+        return A.Compose([
+            ToTensorV2(),
+        ])
 
 class EcgLoader:
     def load_sample_(self):

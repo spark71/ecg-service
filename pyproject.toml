@@ -39,6 +39,8 @@ awsebcli = "^3.20.10"
 fastai = "^2.7.15"
 albumentations = "^1.4.4"
 nnaudio = "^0.3.3"
+heartpy = "^1.2.7"
+timm = "^0.9.16"
 
 
 [build-system]

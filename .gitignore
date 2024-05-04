@@ -6,6 +6,7 @@ pqrst_modelsig.ipynb
 __pycache__
 app/uploads
 eda/.ipynb_checkpoints/
+eda/temp.ipynb
 
 data/ptbxl/records100
 data/ptbxl/records500
@@ -16,6 +17,7 @@ data/ptbxl/npy_signals100/
 *.dat
 *.hea
 *.env
+*.zip
 
 # virtualenv
 venv/

@@ -37,16 +37,18 @@ class Datasets(enum.Enum):
 
 
 class EcgDataset(Dataset):
-    def __init__(self, df, transform=None):
+    def __init__(self, df, feature="raw", transform=None):
         self.df = df
         self.file_names = df['file_paths'].values
         self.labels = df[RawCfg.target_col].values
-        # self.wave_transform = CQT1992v2(**RawCfg.qtransform_params)
+        self.wave_transform = CQT1992v2(**CqtCFG.qtransform_params)
         self.transform = transform
+        self.feature = feature
 
     def __len__(self):
         return len(self.df)
 
+    # @classmethod
     def apply_qtransform(self, waves, transform):
         waves = np.hstack(waves)
         waves = waves / np.max(waves)
@@ -54,15 +56,29 @@ class EcgDataset(Dataset):
         image = transform(waves)
         return image
 
+    def get_feature(self, type: str, signal: np.ndarray):
+        """
+        :param type: raw, cqt
+        :param signal: 12-leads array
+        :return: image or signal
+        """
+        if type.lower() == 'raw':
+            return torch.from_numpy(signal.T).to(torch.double)[None, :]
+
+        if type.lower() == 'cqt':
+            image = self.apply_qtransform(signal, self.wave_transform)
+            return image.squeeze()[None, None, :]
+
     def __getitem__(self, idx):
         file_path = self.file_names[idx]
-        waves = np.load(file_path)
-        # image = self.apply_qtransform(waves, self.wave_transform)
-        # image = image.squeeze().numpy()
-        # if self.transform:
-        #     image = self.transform(image=image)['image']
+        signal = np.load(file_path)
+        # scaled_signal = apply_scaler(signal, scaler=scaler)
+        signal_tensor = self.get_feature(type=self.feature, signal=signal)
         label = torch.tensor(self.labels[idx]).float()
-        return waves, label
+        return signal_tensor, label
+
+
+
 
 
 def get_transforms(*, data='train'):

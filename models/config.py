@@ -56,9 +56,9 @@ class CqtCFG:
 
 
 
-if CqtCFG.debug:
-    CqtCFG.epochs = 1
-    folds = train.sample(n=1000, random_state=CFG.seed).reset_index(drop=True)
+# if CqtCFG.debug:
+#     CqtCFG.epochs = 1
+#     folds = train.sample(n=1000, random_state=CFG.seed).reset_index(drop=True)
 
 
 

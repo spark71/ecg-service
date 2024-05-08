@@ -181,12 +181,39 @@ class EcgSignal:
         return signal
 
     @staticmethod
-    def plot_sample(ecg_sample, figsize=(18, 8)):
-        fig, ax = plt.subplots(figsize=figsize)
-        plt.rcParams.update({'font.size': 22})
-        ax.set_xlabel('time [n] - отсчёты')
-        ax.set_ylabel('mV')
-        plt.plot(ecg_sample)
+    def plot_sample(sample, figsize=(18, 8), leads=None):
+        """
+
+        :param ecg_sample: np.array, (ch, lead_values)
+        :param figsize:
+        :param list(leads) | all | None - plot one lead
+        :return: plot
+        """
+        # fig, ax = plt.subplots(figsize=figsize)
+        # plt.rcParams.update({'font.size': 22})
+        # ax.set_xlabel('time [n] - отсчёты')
+        # ax.set_ylabel('mV')
+        # plt.plot(ecg_sample)
+
+        if type(leads) is list:
+            bar, axes = plt.subplots(len(leads), 1, figsize=figsize)
+            for lead in leads:
+                sns.lineplot(x=np.arange(sample.shape[0]), y=sample[:, lead-1], ax=axes[lead-1])
+            plt.show()
+        elif leads == "all":
+        # bar, axes = plt.subplots(sample.shape[1], 1, figsize=(30, 20))
+            bar, axes = plt.subplots(sample.shape[1], 1, figsize=figsize)
+            plt.rcParams.update({'font.size': 14})
+            for i in range(sample.shape[1]):
+                sns.lineplot(x=np.arange(sample.shape[0]), y=sample[:, i], ax=axes[i])
+            plt.show()
+        if leads is None:
+            fig, ax = plt.subplots(figsize=figsize)
+            plt.rcParams.update({'font.size': 22})
+            ax.set_xlabel('time [n] - отсчёты')
+            ax.set_ylabel('mV')
+            plt.plot(sample)
+
 
     @staticmethod
     def del_zspan(ecg_sample):

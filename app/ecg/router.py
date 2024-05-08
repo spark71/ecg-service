@@ -5,12 +5,14 @@ import numpy as np
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from hrvanalysis import get_time_domain_features
+import torch
+import io
 
 from app.ecg.ecg import ROOT_DIR
 from app.ecg.ecg import EcgSignal as esig
 from app.ecg.form_schema import DataForm
 
-import io
+from models.config import model_factory
 
 
 UPLOAD_DIR = ROOT_DIR + 'app/ecg/uploads'
@@ -22,15 +24,23 @@ templates = Jinja2Templates(directory="app/templates")
 #       - make pred
 # height weight recording_date
 
-router = APIRouter(
-    tags=['ЭКГ-сигналы']
-)
-
-
 
 #TODO:
 # add ecg orm
 
+
+router = APIRouter(
+    tags=['ЭКГ-сигналы']
+)
+
+# Загрузка модели
+model = model_factory('resnet1d_wang')
+# resnet1d_wang_model = model(input_channels=12, num_classes=5)
+resnet1d_wang_weights = r'C:\Users\redmi\PycharmProjects\ecg-tool-api\models\pretrained\resnet1d_wang\resnet1d_wang_fold1_16epoch_best_score.pth'
+model.load_state_dict(torch.load(resnet1d_wang_weights, map_location=torch.device('cpu'))['model'])
+model.double()
+model.eval()
+# print(model)
 
 signals = []
 latest_signal = []
@@ -71,12 +81,21 @@ async def get_signal_info():
 @router.get('/predict')
 async def predict(nn_model: Optional[str] = None) -> dict:
     classes = ['STTC', 'NORM', 'MI', 'HYP', 'CD']
-    if nn_model is None:
-        result = {'signal_shape': latest_signal[-1].shape, 'predicted_class': random.choice(classes)}
-    else:
-        result = nn_model.predict(latest_signal[-1])
+    signal = torch.from_numpy(latest_signal[-1].T).to(torch.double)[None, :]
+    prediction = model(signal)
+    prediction_list = model(signal).detach().tolist()
+    prediction_probs_softmax = torch.softmax(prediction, dim=1).detach().tolist()
+    result = {
+        'signal_shape': signal.shape,
+        'prediction': prediction_list,
+        'prediction_probs_softmax': prediction_probs_softmax,
+        'predicted_class': 1
+    }
 
     return result
+
+
+
 
 
 @router.get('/signals')

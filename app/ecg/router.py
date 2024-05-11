@@ -1,3 +1,5 @@
+import base64
+
 from fastapi import APIRouter, Depends, Request
 import random
 from typing import Optional
@@ -10,7 +12,7 @@ import io
 
 from app.ecg.ecg import ROOT_DIR
 from app.ecg.ecg import EcgSignal as esig
-from app.ecg.form_schema import DataForm
+from app.ecg.form_schema import DataForm, DataBytes
 
 from models.config import model_factory
 
@@ -33,6 +35,11 @@ router = APIRouter(
     tags=['ЭКГ-сигналы']
 )
 
+upload_router = APIRouter(
+    tags=['Загрузка ЭКГ']
+)
+
+
 # Загрузка модели
 model = model_factory('resnet1d_wang')
 # resnet1d_wang_model = model(input_channels=12, num_classes=5)
@@ -46,12 +53,12 @@ signals = []
 latest_signal = []
 
 
-@router.get('/pages/add_sig', response_class=HTMLResponse)
+@router.get('/pages/add_sig_form', response_class=HTMLResponse)
 async def get_add_sig(request: Request):
     return templates.TemplateResponse(name="add_form.html", context={'request': request})
 
 
-@router.post('/pages/add_sig', response_class=HTMLResponse)
+@router.post('/pages/add_sig_form', response_class=HTMLResponse)
 async def post_add_sig(request: Request, form_data: DataForm = Depends(DataForm.as_form)):
     print(form_data)
     contents = await form_data.leads_values.read()
@@ -62,6 +69,15 @@ async def post_add_sig(request: Request, form_data: DataForm = Depends(DataForm.
     latest_signal.append(data)
     return templates.TemplateResponse(name="add_form.html", context={'request': request})
 
+@router.post('/add_sig_bytes')
+async def add_sig_bytes(data: DataBytes):
+    data_dict = dict(data)
+    signal_bytes_str = data_dict["ecg_values"]
+    base64_bytes = base64.b64decode(signal_bytes_str)
+    signal = np.frombuffer(base64_bytes, dtype=np.float64)
+    print("Signal:", signal.shape, type(signal))
+    latest_signal.append(signal)
+    return data_dict
 
 @router.get('/get_signal_info')
 async def get_signal_info():
@@ -80,16 +96,22 @@ async def get_signal_info():
 
 @router.get('/predict')
 async def predict(nn_model: Optional[str] = None) -> dict:
-    classes = ['STTC', 'NORM', 'MI', 'HYP', 'CD']
-    signal = torch.from_numpy(latest_signal[-1].T).to(torch.double)[None, :]
+    classes = np.array(['CD', 'HYP', 'MI', 'NORM', 'STTC'])
+    signal = torch.from_numpy(latest_signal[-1].reshape(1000, 12).T[np.newaxis, :]).to(torch.double)
+    print("SHHHHAPE:", signal.shape)
     prediction = model(signal)
     prediction_list = model(signal).detach().tolist()
-    prediction_probs_softmax = torch.softmax(prediction, dim=1).detach().tolist()
+    prediction_probs_softmax = torch.softmax(prediction, dim=1).detach().numpy()[0]
+    th = 0.15
+    cls_probs = prediction_probs_softmax[ np.where(prediction_probs_softmax > th)[0] ]
+    cls_idx = np.where(prediction_probs_softmax > th)[0]
+    cls_pred = classes[cls_idx]
     result = {
         'signal_shape': signal.shape,
         'prediction': prediction_list,
-        'prediction_probs_softmax': prediction_probs_softmax,
-        'predicted_class': 1
+        'prediction_probs_softmax': prediction_probs_softmax.tolist(),
+        'cls_pred': cls_pred.tolist(),
+        'cls_probs': cls_probs.tolist(),
     }
 
     return result

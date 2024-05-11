@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import Form, File, UploadFile
 from pydantic import BaseModel
 
@@ -31,3 +33,16 @@ class DataForm(BaseModel):
             device = device,
             leads_values = leads_values
         )
+
+
+
+
+class DataBytes(BaseModel):
+    sample_rate: int
+    name: Optional[str] = None
+    gender: str
+    age: int
+    height: int
+    weight: float
+    device: str
+    ecg_values: str

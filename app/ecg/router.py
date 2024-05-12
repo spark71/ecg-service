@@ -1,5 +1,6 @@
 import base64
 
+import pandas as pd
 from fastapi import APIRouter, Depends, Request
 import random
 from typing import Optional
@@ -9,6 +10,8 @@ from fastapi.templating import Jinja2Templates
 from hrvanalysis import get_time_domain_features
 import torch
 import io
+
+from matplotlib import pyplot as plt
 
 from app.ecg.ecg import ROOT_DIR
 from app.ecg.ecg import EcgSignal as esig
@@ -21,14 +24,7 @@ UPLOAD_DIR = ROOT_DIR + 'app/ecg/uploads'
 templates = Jinja2Templates(directory="app/templates")
 
 #TODO:
-# 3) Make prediction on uploaded signals /pred_signal/{ecg_id}
 #       - choose a model
-#       - make pred
-# height weight recording_date
-
-
-#TODO:
-# add ecg orm
 
 
 router = APIRouter(
@@ -81,8 +77,8 @@ async def add_sig_bytes(data: DataBytes):
 
 @router.get('/get_signal_info')
 async def get_signal_info():
-    r_peaks = esig.detect_r_peaks(latest_signal[-1].T[0], 0.7, 50, False).tolist()
-    print(latest_signal)
+    signal = latest_signal[-1].reshape(1000, 12).T[np.newaxis, :]
+    r_peaks = esig.detect_r_peaks(signal[0, 0], 0.7, 50, False).tolist()
     nn_intervals = np.diff(r_peaks).tolist()
     time_domain_features = get_time_domain_features(nn_intervals)
     time_domain_features = {key: float(value) for key, value in time_domain_features.items()}
@@ -98,7 +94,7 @@ async def get_signal_info():
 async def predict(nn_model: Optional[str] = None) -> dict:
     classes = np.array(['CD', 'HYP', 'MI', 'NORM', 'STTC'])
     signal = torch.from_numpy(latest_signal[-1].reshape(1000, 12).T[np.newaxis, :]).to(torch.double)
-    print("SHHHHAPE:", signal.shape)
+    # print("SHHHHAPE:", signal.shape)
     prediction = model(signal)
     prediction_list = model(signal).detach().tolist()
     prediction_probs_softmax = torch.softmax(prediction, dim=1).detach().numpy()[0]

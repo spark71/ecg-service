@@ -10,6 +10,7 @@ import requests
 import time
 from ecg.form_schema import DataBytes
 
+api_host = 'http://127.0.0.1:8000/'
 #TODO:
 # 1) загрузка сигнала
 # 2) визуализация и маркировка сигнала по отведениям
@@ -19,12 +20,21 @@ from ecg.form_schema import DataBytes
 # 7) доп задачи
 
 
-st.header('🫀ЭКГ-сервис', divider='green')
+# st.header('🫀ЭКГ-сервис', divider='green')
+st.title('🫀ЭКГ-сервис')
 
 with st.expander(':arrow_up:Загрузка сигнала'):
-    st.markdown('''
-        **Заполните предлагаемые поля данных. Далее загрузите сигнал.**
-    ''')
+    # st.markdown('''
+    #     **1) Заполните предлагаемые поля данных.
+    #       2) Далее загрузите сигнал**
+    # ''')
+    st.info('Заполните предлагаемые поля данных. Далее загрузите сигнал', icon="ℹ️")
+
+
+    # st.write("1) Заполните предлагаемые поля данных ")
+    # st.write("2) Загрузите сигнал")
+
+
     # st.image("https://static.streamlit.io/examples/dice.jpg")
     # st.button('Upload').on_click(show_popup)
     name = st.text_input("Имя пациента:")
@@ -93,7 +103,7 @@ if success:
 
         st.button("Показать все отведения")
         # Создаем DataFrame с данными для графика
-        df = pd.DataFrame({'x': np.arange(len(file_content[:, 0])), 'y': file_content[:, 0]})
+        df = pd.DataFrame({'time': np.arange(len(file_content[:, 0])), 'mV': file_content[:, 0]})
 
         # Создаем интерактивный график сигнала с помощью библиотеки Altair
         # chart = alt.Chart(df).mark_line().encode(
@@ -106,12 +116,17 @@ if success:
 
         # Создаем интерактивный график сигнала с помощью библиотеки Altair
         chart = alt.Chart(df).mark_line().encode(
-            x='x',
-            y='y'
+            x='time',
+            y='mV'
         )
-
+        # ax.set_xlabel('time [n] - отсчёты')
+        # ax.set_ylabel('Δφ, mV')
         # Наносим вертикальные линии
-        vertical_lines = alt.Chart(pd.DataFrame({'x': [10, 40, 70]})).mark_rule(color='red').encode(x='x')
+        # info_res = requests.get(api_host + 'get_signal_info')
+        # print("INFO", info_res)
+        # r_peaks = info_res['r_peaks']
+        # vertical_lines = alt.Chart(pd.DataFrame({'time': [10, 40, 70]})).mark_rule(color='red').encode(x='time')
+        vertical_lines = alt.Chart(pd.DataFrame({'time': [10]})).mark_rule(color='red').encode(x='time')
 
         # Совмещаем график и вертикальные линии
         combined_chart = (chart + vertical_lines).properties(
@@ -126,7 +141,7 @@ if success:
         #     st.line_chart(file_content[:, lead-1], color="#f23c24")
 
     with st.expander('🧾Диагностическая ифнормация'):
-        st.header('Общие сведения о сигнале.')
+        st.header('Общие сведения о сигнале', divider="green")
         st.subheader("Параметры вариабельности сердечного ритма (ВСР)")
         st.subheader("Классификация ЭКГ")
         api_host = 'http://127.0.0.1:8000/'
@@ -150,18 +165,25 @@ if success:
                 ecg_values=base64_string_ecg_values
             )
             data = payload.json().encode('utf-8')
-            # print(data)
             req = requests.post(api_host + 'add_sig_bytes', data=data)
             st.write(req.status_code)
             # st.write(req.content)
 
-            res = requests.get(api_host + 'predict')
+            pred_res = requests.get(api_host + 'predict')
             print(1)
-            print(res.status_code)
-            if res.status_code == 200:
-                data = res.json()
+            print(pred_res.status_code)
+            if pred_res.status_code == 200:
+                data = pred_res.json()
                 # print(data)
                 for i in range(len(data['cls_pred'])):
                     st.write(f'{data['cls_pred'][i]} - ' + "{:.2f}%".format(data['cls_probs'][i]*100))
+                info_res = requests.get(api_host + 'get_signal_info').json()
+                signal_info_df = pd.DataFrame([list(info_res['time_domain_features'].values())],
+                                  columns=list(info_res['time_domain_features'].keys()))
+                st.write("Отсчёты R-пиков:", info_res['r_peaks'])
+                st.write("Длительности RR-интервалов:", info_res['nn_intervals'])
+                st.dataframe(signal_info_df, hide_index=True)
             else:
                 st.write("Не удалось классифицировать сигнал")
+
+

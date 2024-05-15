@@ -12,6 +12,7 @@ import torch
 from torch.utils.data import Dataset
 from nnAudio.features.cqt import CQT1992v2
 from models.config import CqtCFG, RawCfg
+import neurokit2 as nk
 
 # Папка с проектом
 #
@@ -175,7 +176,7 @@ class EcgSignal:
             hea_path = path + '_hr.hea'
         record = ECGRecord.from_wfdb(hea_path)
         time = record.time
-        signal = numpy.array(record.get_lead(zone))
+        signal = np.array(record.get_lead(zone))
         if show:
             signal_plot(signal)
         return signal
@@ -255,8 +256,8 @@ class EcgSignal:
                 ax.axvline(x=peak, color="r")
         return peak_indicies
 
-    @staticmethod
-    def detect_waves(sr, method='dwt', show=False):
+    @classmethod
+    def detect_waves(self, signal, sr, method='dwt', show=False):
         #TODO: fix
         """
         Детекция особых точек ЭКС
@@ -269,18 +270,18 @@ class EcgSignal:
         ->           словарь индексов pqrst-волн, маркированный график сигнала,
                      словарь относительных точек внутри PPi
         """
-        rpeaks = r_peak_detection(self, max_th=.7, min_dist=100)
+        rpeaks = self.detect_r_peaks(signal, max_th=.7, min_dist=100)
         # компенсация шумовых помех
-        ecg_sample_clean = nk.ecg_clean(self, sampling_rate=sr)
+        ecg_sample_clean = nk.ecg_clean(signal, sampling_rate=sr)
 
-        _, waves_peak = nk.ecg_delineate(self, rpeaks, sampling_rate=sr, method="dwt", show_type='peaks')
+        _, waves_peak = nk.ecg_delineate(signal, rpeaks, sampling_rate=sr, method="dwt", show_type='peaks')
 
         #-------------------------------------------------------------------------------------------------------
         # Создадим датасет, куда будут входить сами точки их коэф-ты положения внутри PP
         waves_df = pd.DataFrame(data=waves_peak)
 
         # Добавим R-пики
-        waves_df['r_peaks'] = r_peak_detection(self, max_th=.7, min_dist=100, show=True)
+        waves_df['r_peaks'] = self.detect_r_peaks(signal, max_th=.7, min_dist=100, show=False)
 
         # Считаем длительности PP в отсчётах
         pon_diff = np.diff(waves_df['ECG_P_Onsets'])
@@ -316,11 +317,11 @@ class EcgSignal:
         waves_df_rel['pp_diff'] = p_on_diff
         # Посчитаем среднюю амплитуду волновых точек P Q R S T
         # Находим усреднённые характеристики амплитуд pqrst     (upd 1)
-        p_mean_amp = np.mean(self[ np.array(waves_df[waves_df['ECG_P_Peaks'].notnull()]['ECG_P_Peaks']).astype(int) ])
-        q_mean_amp = np.mean(self[ np.array(waves_df[waves_df['ECG_Q_Peaks'].notnull()]['ECG_Q_Peaks']).astype(int) ])
-        r_mean_amp = np.mean(self[ np.array(waves_df[waves_df['r_peaks'].notnull()]['r_peaks']).astype(int) ])
-        s_mean_amp = np.mean(self[ np.array(waves_df[waves_df['ECG_S_Peaks'].notnull()]['ECG_S_Peaks']).astype(int) ])
-        t_mean_amp = np.mean(self[ np.array(waves_df[waves_df['ECG_T_Peaks'].notnull()]['ECG_T_Peaks']).astype(int) ])
+        p_mean_amp = np.mean(signal[ np.array(waves_df[waves_df['ECG_P_Peaks'].notnull()]['ECG_P_Peaks']).astype(int) ])
+        q_mean_amp = np.mean(signal[ np.array(waves_df[waves_df['ECG_Q_Peaks'].notnull()]['ECG_Q_Peaks']).astype(int) ])
+        r_mean_amp = np.mean(signal[ np.array(waves_df[waves_df['r_peaks'].notnull()]['r_peaks']).astype(int) ])
+        s_mean_amp = np.mean(signal[ np.array(waves_df[waves_df['ECG_S_Peaks'].notnull()]['ECG_S_Peaks']).astype(int) ])
+        t_mean_amp = np.mean(signal[ np.array(waves_df[waves_df['ECG_T_Peaks'].notnull()]['ECG_T_Peaks']).astype(int) ])
 
         # список со средними амплитудами для P Q R S T
         mean_pqrst_amp = np.around([p_mean_amp, q_mean_amp, r_mean_amp, s_mean_amp, t_mean_amp], 3)
@@ -332,42 +333,42 @@ class EcgSignal:
             ax.set_title('PQST-waves')
             ax.set_xlabel('time [n] - отсчёты')
             ax.set_ylabel('mV')
-            ax.plot(self)
+            ax.plot(signal)
 
             # Заменим nan на numpy.nan
             for wave in waves_peak.keys():
                 for i in range(len(waves_peak['ECG_P_Peaks'])):
                     if pd.isna(waves_peak[wave][i]):
-                        waves_peak[wave][i] = numpy.nan
+                        waves_peak[wave][i] = np.nan
 
             for i in range(len(waves_peak['ECG_P_Peaks'])):
 
                 # значения сигнала в определённых индексах волн
 
                 if not pd.isna(waves_peak['ECG_P_Peaks'][i]):
-                    peak_p_value = self[waves_peak['ECG_P_Peaks'][i]]
+                    peak_p_value = signal[waves_peak['ECG_P_Peaks'][i]]
                 else:
-                    peak_p_value = numpy.nan
+                    peak_p_value = np.nan
 
                 if not pd.isna(waves_peak['ECG_P_Onsets'][i]):
-                    peak_pon_value = self[waves_peak['ECG_P_Onsets'][i]]
+                    peak_pon_value = signal[waves_peak['ECG_P_Onsets'][i]]
                 else:
-                    peak_pon_value = numpy.nan
+                    peak_pon_value = np.nan
 
                 if not pd.isna(waves_peak['ECG_Q_Peaks'][i]):
-                    peak_q_value = self[waves_peak['ECG_Q_Peaks'][i]]
+                    peak_q_value = signal[waves_peak['ECG_Q_Peaks'][i]]
                 else:
-                    peak_q_value = numpy.nan
+                    peak_q_value = np.nan
 
                 if not pd.isna(waves_peak['ECG_S_Peaks'][i]):
-                    peak_s_value = self[waves_peak['ECG_S_Peaks'][i]]
+                    peak_s_value = signal[waves_peak['ECG_S_Peaks'][i]]
                 else:
-                    peak_s_value = numpy.nan
+                    peak_s_value = np.nan
 
                 if not pd.isna(waves_peak['ECG_T_Peaks'][i]):
-                    peak_t_value = self[waves_peak['ECG_T_Peaks'][i]]
+                    peak_t_value = signal[waves_peak['ECG_T_Peaks'][i]]
                 else:
-                    peak_t_value = numpy.nan
+                    peak_t_value = np.nan
 
                 # отображение волн точками
                 p = ax.scatter(x=waves_peak['ECG_P_Peaks'][i], y=peak_p_value, color='green', alpha=.5, linewidths=3)
@@ -378,7 +379,7 @@ class EcgSignal:
                 t = ax.scatter(x=waves_peak['ECG_T_Peaks'][i], y=peak_t_value, color='#a87fea', alpha=.7, linewidths=3)
 
             for i in range(len(rpeaks)):
-                peak_r_value = self[rpeaks[i]]
+                peak_r_value = signal[rpeaks[i]]
                 ax.scatter(x=rpeaks[i], y=peak_r_value, color='red', alpha=.7, linewidths=5, marker="|")
 
             plt.legend((pon, p, q, s, t),

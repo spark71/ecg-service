@@ -114,8 +114,8 @@ if success:
 
         r_peaks_checkbox = st.checkbox('R-пики')
         r_peaks = info_res['r_peaks']
-        def draw_lead(sig_df: pd.DataFrame, lead_name: str) -> st.altair_chart:
 
+        def draw_lead(sig_df: pd.DataFrame, lead_name: str) -> st.altair_chart:
             # Создаем интерактивный график сигнала с помощью библиотеки Altair
             chart = alt.Chart(sig_df).mark_line().encode(
                 x='time',

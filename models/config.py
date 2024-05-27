@@ -1,3 +1,28 @@
+from models.nn.xresnet1d import xresnet1d101
+from models.nn.inception1d import inception1d
+from models.nn.resnet1d import resnet1d_wang
+from models.nn.rnn1d import RNN1d
+
+def model_factory(model_name):
+    model = None
+    if model_name.lower()=='xresnet1d101':
+        model = xresnet1d101(input_channels=12, num_classes=5)
+
+    if model_name.lower()=='resnet1d_wang':
+        model = resnet1d_wang(input_channels=12, num_classes=5)
+
+    if model_name.lower()=='inception1d_model':
+        model = inception1d(input_channels=12, num_classes=5)
+
+    if model_name.lower()=='rnn_1d':
+        model = RNN1d(input_channels=12, num_classes=5)
+
+    return model
+
+def load_pretrained_model(model_name):
+    pass
+
+
 class CqtCFG:
     apex = False
     debug = False

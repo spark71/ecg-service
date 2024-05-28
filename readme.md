@@ -4,10 +4,17 @@
 3) После установки `poetry --version`
 https://python-poetry.org/docs/basic-usage/ 
  
-# Запуск сервиса
+# Запуск backend-сервиса
+```bash
+uvicorn app.main_api:app --port 8000 --reload
 ```
-uvicorn app.main:app --port 8000 --reload
+
+# Запуск frontend-сервиса
+```bash
+cd app
+streamlit run app.py
 ```
+
 # Источники данных
 
 1. Zenodo: https://zenodo.org/records/3765780

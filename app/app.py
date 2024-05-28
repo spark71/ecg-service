@@ -116,13 +116,14 @@ if success:
         r_peaks = info_res['r_peaks']
 
         def draw_lead(sig_df: pd.DataFrame, lead_name: str) -> st.altair_chart:
-            # Создаем интерактивный график сигнала с помощью библиотеки Altair
+            sig_df['time/s'] = sig_df.index / 100
+
             chart = alt.Chart(sig_df).mark_line().encode(
-                x='time',
+                x='time/s:Q',
                 y='mV'
             )
             if r_peaks_checkbox:
-                vertical_lines = alt.Chart(pd.DataFrame({'time': r_peaks})).mark_rule(color='red').encode(x='time')
+                vertical_lines = alt.Chart(pd.DataFrame({'R': np.array(r_peaks)/100})).mark_rule(color='red').encode(x='R')
 
                 # Совмещаем график и вертикальные линии
                 combined_chart = (chart + vertical_lines).properties(

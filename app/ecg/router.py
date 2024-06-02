@@ -39,7 +39,7 @@ upload_router = APIRouter(
 # Загрузка модели
 model = model_factory('resnet1d_wang')
 # resnet1d_wang_model = model(input_channels=12, num_classes=5)
-resnet1d_wang_weights = r'C:\Users\redmi\PycharmProjects\ecg-tool-api\models\pretrained\resnet1d_wang\resnet1d_wang_fold1_16epoch_best_score.pth'
+resnet1d_wang_weights = r'models\pretrained\resnet1d_wang\resnet1d_wang_fold1_16epoch_best_score.pth'
 model.load_state_dict(torch.load(resnet1d_wang_weights, map_location=torch.device('cpu'))['model'])
 model.double()
 model.eval()

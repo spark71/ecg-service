@@ -1,5 +1,6 @@
 import enum
 import os
+import random
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,13 +14,12 @@ from torch.utils.data import Dataset
 from nnAudio.features.cqt import CQT1992v2
 from models.config import CqtCFG, RawCfg
 import neurokit2 as nk
-
+from ecg_augmentations.ecg_augmentations import *
+from torch_ecg.augmenters import BaselineWanderAugmenter
+from ecg_augmentations.ecg_augmentations.augmentations.crop import RandomCrop
+from ecg_augmentations.ecg_augmentations.augmentations.noise import GaussianNoise
 # Папка с проектом
-#
-# ROOT_DIR = r'C:\Users\User\PycharmProjects\ecg-service'
 ROOT_DIR = r'C:\Users\redmi\PycharmProjects\ecg-tool-api'
-
-
 
 @enum.unique
 class Datasets(enum.Enum):
@@ -79,41 +79,101 @@ class EcgDataset(Dataset):
         return signal_tensor, label
 
 
+class EcgDatasetAug(Dataset):
+    def __init__(self, df, loader_type="inference", feature="raw", transform=None):
+        self.df = df
+        self.file_names = df['file_paths'].values
+        self.labels = df[RawCfg.target_col].values
+        self.wave_transform = CQT1992v2(**CqtCFG.qtransform_params)
+        self.transform = transform
+        self.feature = feature
+        self.loader_type = loader_type  # inference | train, valid (batched)
+
+    def __len__(self):
+        return len(self.df)
+
+    def apply_qtransform(self, waves, transform):
+        waves = np.hstack(waves)
+        waves = waves / np.max(waves)
+        waves = torch.from_numpy(waves).float()
+        image = transform(waves)
+        return image
+
+    def augment(self, signal_tensor, signal_character: dict):
+        augmentations = ['gaussian_noise', 'baseline_wander', 'original']
+        aug_probs = [0.3, 0.2, 0.5]
+        aug_fn = np.random.choice(augmentations, p=aug_probs)
+        print('Augmentation: ', aug_fn)
+        # if aug_fn == 'random_crop':
+        #     print('make crop')
+        #     crop = RandomCrop(n_samples=random.randint(600, 900))
+        #     signal_tensor = crop(signal_tensor)
+
+        if aug_fn == 'gaussian_noise':
+            if (pd.isna(signal_character['have_static_noise']) and pd.isna(signal_character['have_burst_noise'])
+                    and pd.isna(signal_character['have_electrodes_problems'])):
+                print('add gaussian noise')
+                noise = GaussianNoise(max_snr=0.5)
+                signal_tensor = noise(signal_tensor)
+
+        if aug_fn == 'baseline_wander':
+            if pd.isna(signal_character['have_baseline_drift']):
+                print('add baseline wander')
+                blw = BaselineWanderAugmenter(fs=100, prob=1)
+                sig_aug, _ = blw(signal_tensor, [0, 0, 0, 0, 0], inplace=False)
+                signal_tensor = sig_aug
+
+        return signal_tensor
+
+    def get_feature(self, feature: str, signal: np.ndarray):
+        """
+        :param feature: raw, cqt
+        :param signal: 12-leads array
+        :return: image or signal
+        """
+        if feature.lower() == 'raw':
+            if self.loader_type == 'train':
+                return torch.from_numpy(signal.T).to(torch.double)[None, :]
+            if self.loader_type == 'inference':
+                return torch.from_numpy(signal.T).to(torch.double)
+            return torch.from_numpy(signal.T).to(torch.double)[None, :]
+
+        if feature.lower() == 'cqt':
+            image = self.apply_qtransform(signal, self.wave_transform)
+            return image.squeeze()[None, None, :]
+
+    def __getitem__(self, idx):
+        file_path = self.file_names[idx]
+        signal_character = {
+            'have_burst_noise': self.df['burst_noise'].values[idx],
+            'have_static_noise': self.df['static_noise'].values[idx],
+            'have_baseline_drift': self.df['baseline_drift'].values[idx],
+            'have_electrodes_problems': self.df['electrodes_problems'].values[idx]
+        }
+
+        signal = np.load(file_path)
+        signal_tensor = self.get_feature(feature=self.feature, signal=signal)
+        if self.loader_type in ["train", "valid"]:
+            signal_tensor = self.augment(signal_tensor, signal_character)
+
+        label = torch.tensor(self.labels[idx]).float()
+        return signal_tensor, label
 
 
-
-def get_transforms(*, data='train'):
-    '''
-    Return Augmented Image tensor for training dataset
-    '''
-
-    if data == 'train':
-        return A.Compose(
-            [
-                # A.Resize(CFG.image_size,CFG.image_size),
-                # A.HorizontalFlip(p=0.3),
-                # A.VerticalFlip(p=0.3),
-                # A.Rotate(limit=180, p=0.3),
-                # A.RandomBrightness(limit=0.6, p=0.5),
-                # A.Cutout(
-                # num_holes=10, max_h_size=12, max_w_size=12,
-                # fill_value=0, always_apply=False, p=0.5
-                # ),
-                # A.ShiftScaleRotate(
-                #    shift_limit=0.25, scale_limit=0.1, rotate_limit=0
-                # ),
-                ToTensorV2(p=1.0),
-            ]
-        )
-
-    elif data == 'valid':
-        return A.Compose([
-            ToTensorV2(),
-        ])
-
-class EcgLoader:
-    def load_sample_(self):
-        pass
+def signal_collate_fn(batch):
+    crop = ['yes', 'no']
+    crop_fn = np.random.choice(crop, p=[0, 1])
+    if crop_fn == 'yes':
+        print("CROPPED BATCH")
+        crop = RandomCrop(n_samples=random.randint(600, 900))
+        cropped_x = [crop(signal) for signal, _ in batch]
+        labels = [y for _, y in batch]
+        return torch.stack(cropped_x), torch.stack(labels)
+    else:
+        print("NOT CROPPED")
+        signals = [signal for signal, _ in batch]
+        labels = [y for _, y in batch]
+        return torch.stack(signals), torch.stack(labels)
 
 
 class EcgSignal:
@@ -196,17 +256,19 @@ class EcgSignal:
         # ax.set_ylabel('mV')
         # plt.plot(ecg_sample)
 
+
         if type(leads) is list:
             bar, axes = plt.subplots(len(leads), 1, figsize=figsize)
             for lead in leads:
                 sns.lineplot(x=np.arange(sample.shape[0]), y=sample[:, lead-1], ax=axes[lead-1])
             plt.show()
         elif leads == "all":
+            leads_list = ['I', 'II', 'III', 'AVR', 'AVL', 'AVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6']
         # bar, axes = plt.subplots(sample.shape[1], 1, figsize=(30, 20))
             bar, axes = plt.subplots(sample.shape[1], 1, figsize=figsize)
             plt.rcParams.update({'font.size': 14})
             for i in range(sample.shape[1]):
-                sns.lineplot(x=np.arange(sample.shape[0]), y=sample[:, i], ax=axes[i])
+                sns.lineplot(x=np.arange(sample.shape[0]), y=sample[:, i], ax=axes[i]).set_title(leads_list[i])
             plt.show()
         if leads is None:
             fig, ax = plt.subplots(figsize=figsize)
@@ -390,7 +452,6 @@ class EcgSignal:
                fontsize=12)
 
         return _, waves_peak, waves_df, waves_df_rel, mean_pqrst_amp
-
 
 
     def make_model_signal(self):

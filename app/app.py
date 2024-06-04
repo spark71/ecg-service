@@ -1,24 +1,26 @@
 import base64
+import os
 from io import StringIO
-
 import altair as alt
 import numpy as np
 import pandas as pd
+import pdfkit
 import requests
 import streamlit as st
-
+import vl_convert as vlc
+from jinja2 import Environment, select_autoescape, FileSystemLoader
 from ecg.form_schema import DataBytes
 
 api_host = 'http://127.0.0.1:8000/'
 #TODO:
-# [+] 1) загрузка сигнала
-# 2) визуализация и маркировка сигнала по отведениям
-# 3) предсказание модели состояния
 # 5) предсказание ритма
 # 6) фильтрация сигнала
 # 7) доп задачи
 
-
+st.set_page_config(
+    page_title="ЭКГ",
+    page_icon="🧊",
+)
 
 st.title('🫀ЭКГ-сервис')
 
@@ -85,10 +87,8 @@ if success:
         data = payload.json().encode('utf-8')
 
         add_sig_req = requests.post(api_host + 'add_sig_bytes', data=data)
-        st.write(add_sig_req.status_code)
+        st.write("Ответ сервиса: ", add_sig_req.status_code)
         info_res = requests.get(api_host + 'get_signal_info').json()
-
-
         with st.container(height=200, border=True):
             st.markdown("〰️ Отведения")
             col1, col2, col3, col4 = st.columns(4)
@@ -146,8 +146,12 @@ if success:
                     }
                 )
             st.altair_chart(combined_chart.interactive())
+            print('chart saved')
+            png_data = vlc.vegalite_to_png(combined_chart.to_json(), scale=2)
+            with open(f"static/{lead_name}.png", "wb") as f:
+                f.write(png_data)
 
-
+        leads_to_report = []
         # Отображаем графики
         for i in range(len(leads_checkboxes)):
             # Если проставлен чекбокс отведения
@@ -155,7 +159,10 @@ if success:
                 sig_df = pd.DataFrame({'time': np.arange(len(file_content[:, 0])), 'mV': file_content[:, i]})
                 lead_name = lead_names[i]
                 draw_lead(sig_df, lead_name)
-
+                leads_to_report.append(lead_name)
+        print(leads_to_report)
+        leads_to_report = list(map(lambda x: fr'{os.path.abspath('static')}\{x}.png', leads_to_report))
+        # print(leads_to_report)
 
     with st.expander('🧾Диагностическая ифнормация'):
         st.header('Общие сведения о сигнале', divider="green")
@@ -170,9 +177,8 @@ if success:
 
         st.button('Запуск', on_click=click_button)
         if st.session_state.clicked:
-            st.write('Button clicked!')
             pred_res = requests.get(api_host + 'predict')
-            print(pred_res.status_code)
+            print("Ответ сервиса: ", pred_res.status_code)
             if pred_res.status_code == 200:
                 data = pred_res.json()
                 for i in range(len(data['cls_pred'])):
@@ -185,5 +191,33 @@ if success:
                 st.dataframe(signal_info_df, hide_index=True)
             else:
                 st.write("Не удалось классифицировать сигнал")
+            generate_pdf_btn = st.button('Сгенерировать pdf-отчёт')
+            if generate_pdf_btn:
+                env = Environment(loader=FileSystemLoader("templates"), autoescape=select_autoescape())
+                template = env.get_template("report.html")
+                st.write(1)
+                # download_pdf_btn = st.download_button
+                if generate_pdf_btn:
+                    html = template.render(
+                        name=name,
+                        age=age,
+                        sample_rate=sr,
+                        gender=gender,
+                        date=date,
+                        height=height,
+                        weight=weight,
+                        device=device,
+                        leads_images=leads_to_report
 
-
+                    )
+                    config = pdfkit.configuration(wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe")
+                    options = {
+                        "enable-local-file-access": True,
+                    }
+                    pdf = pdfkit.from_string(html, False, configuration=config, options=options)
+                    download_pdf_btn = st.download_button(
+                        "⬇️ Скачать PDF",
+                        data=pdf,
+                        file_name=f"report_{name.lower()}.pdf",
+                        mime="application/octet-stream",
+                    )

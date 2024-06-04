@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчёт</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            width: 230px;
+        }
+
+        h1 {
+          text-align: center;
+        }
+
+        img {
+          display: block;
+          margin: 10px auto;
+          max-width: 100%;
+        }
+
+
+    </style>
+</head>
+<body>
+
+<h1>Диагностический отчёт</h1>
+
+<table>
+  <tr>
+    <th>Имя:</th>
+    <td>{{name}}</td>
+  </tr>
+  <tr>
+    <th>Частота дискретизации:</th>
+    <td>{{sample_rate}}</td>
+  </tr>
+  <tr>
+    <th>Возраст:</th>
+    <td>{{age}}</td>
+  </tr>
+  <tr>
+    <th>Пол:</th>
+    <td>{{gender}}</td>
+  </tr>
+  <tr>
+    <th>Рост:</th>
+    <td>{{height}}</td>
+  </tr>
+  <tr>
+    <th>Вес:</th>
+    <td>{{weight}}</td>
+  </tr>
+  <tr>
+    <th>Дата:</th>
+    <td>{{date}}</td>
+  </tr>
+  <tr>
+    <th>Устройство:</th>
+    <td>{{device}}</td>
+  </tr>
+</table>
+
+<h1>Отведения</h1>
+
+{% for image in leads_images %}
+    <img src="{{image}}" alt="Картинка">
+{% endfor %}
+
+</body>
+</html>

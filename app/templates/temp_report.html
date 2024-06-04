@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+       <div style="width:800px; height:600px; padding:20px; text-align:center; border: 10px solid #787878">
+       <div style="width:750px; height:550px; padding:20px; text-align:center; border: 5px solid #787878">
+              <span style="font-size:50px; font-weight:bold">Certificate of Completion</span>
+              <br><br>
+              <span style="font-size:25px"><i>This is to certify that</i></span>
+              <br><br>
+              <span style="font-size:30px"><b>Имя: {{ name }}</b></span><br/><br/>
+              <span style="font-size:30px"><b>Частота дискретизации: {{ sample_rate }}</b></span><br/><br/>
+              <span style="font-size:30px"><b>Возраст: {{ age }}</b></span><br/><br/>
+              <span style="font-size:30px"><b>Пол: {{ gender }}</b></span><br/><br/>
+              <span style="font-size:30px"><b>Рост: {{ height }}</b></span><br/><br/>
+              <span style="font-size:30px"><b>Вес: {{ weight }}</b></span><br/><br/>
+              <span style="font-size:30px"><b>Дата: {{ date }}</b></span><br/><br/>
+              <span style="font-size:30px"><b>Устройство: {{ device }}</b></span><br/><br/>
+              <span style="font-size:25px"><i>has completed the course</i></span> <br/><br/>
+              <span style="font-size:30px">{{ course }}</span> <br/><br/>
+              <span style="font-size:20px">with score of <b> {{ grade }}</b></span> <br/><br/><br/><br/>
+              <span style="font-size:25px"><i>dated</i></span><br>
+             {{ date }}
+</div>
+</div>
+
+</body>
+</html>

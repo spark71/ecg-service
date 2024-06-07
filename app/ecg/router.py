@@ -1,5 +1,4 @@
 import base64
-
 import pandas as pd
 from fastapi import APIRouter, Depends, Request
 import random
@@ -10,7 +9,6 @@ from fastapi.templating import Jinja2Templates
 from hrvanalysis import get_time_domain_features
 import torch
 import io
-
 from matplotlib import pyplot as plt
 
 from app.ecg.ecg import ROOT_DIR
@@ -36,14 +34,13 @@ upload_router = APIRouter(
 )
 
 
-# Загрузка модели
-model = model_factory('resnet1d_wang')
-# resnet1d_wang_model = model(input_channels=12, num_classes=5)
-resnet1d_wang_weights = r'models\pretrained\resnet1d_wang\resnet1d_wang_fold1_16epoch_best_score.pth'
-model.load_state_dict(torch.load(resnet1d_wang_weights, map_location=torch.device('cpu'))['model'])
-model.double()
-model.eval()
-# print(model)
+# # Загрузка модели
+# model = model_factory('resnet1d_wang')
+# resnet1d_wang_weights = r'models\pretrained\resnet1d_wang\resnet1d_wang_fold1_16epoch_best_score.pth'
+# model.load_state_dict(torch.load(resnet1d_wang_weights, map_location=torch.device('cpu'))['model'])
+# model.double()
+# model.eval()
+
 
 signals = []
 latest_signal = []
@@ -113,7 +110,27 @@ async def predict(nn_model: Optional[str] = None) -> dict:
     return result
 
 
+@router.get('/predict_by/{nn_model}')
+async def predict(nn_model: Optional[str] = None) -> dict:
+    classes = np.array(['CD', 'HYP', 'MI', 'NORM', 'STTC'])
+    signal = torch.from_numpy(latest_signal[-1].reshape(1000, 12).T[np.newaxis, :]).to(torch.double)
+    model = model_factory(nn_model)
+    prediction = model(signal)
+    prediction_list = model(signal).detach().tolist()
+    prediction_probs_softmax = torch.softmax(prediction, dim=1).detach().numpy()[0]
+    th = 0.15
+    cls_probs = prediction_probs_softmax[ np.where(prediction_probs_softmax > th)[0] ]
+    cls_idx = np.where(prediction_probs_softmax > th)[0]
+    cls_pred = classes[cls_idx]
+    result = {
+        'signal_shape': signal.shape,
+        'prediction': prediction_list,
+        'prediction_probs_softmax': prediction_probs_softmax.tolist(),
+        'cls_pred': cls_pred.tolist(),
+        'cls_probs': cls_probs.tolist(),
+    }
 
+    return result
 
 
 @router.get('/signals')

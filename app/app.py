@@ -27,15 +27,15 @@ st.title('🫀ЭКГ-сервис')
 
 with st.expander(':arrow_up:Загрузка сигнала'):
     st.info('Заполните предлагаемые поля данных. Далее загрузите сигнал', icon="ℹ️")
-    name = st.text_input("Имя пациента:")
-    sr = st.number_input("Частота дискретизации (sample rate):", min_value=0, max_value=10000, step=1)
-    age = st.number_input("Возраст:", min_value=0, max_value=120, step=1)
-    gender = option = st.selectbox("Пол:", ("М", "Ж"))
-    height = st.number_input("Рост:", min_value=0, max_value=300, step=1)
-    weight = st.number_input("Вес:", min_value=0, max_value=300, step=1)
-    date = str(st.date_input("Дата:"))
-    device = st.text_input("Устройство:")
-    uploaded_file = st.file_uploader("Выберите файл:", type=['txt', 'npy'])
+    name = st.text_input("**Имя пациента:**")
+    sr = st.number_input("**Частота дискретизации (sample rate):**", min_value=0, max_value=10000, step=1)
+    age = st.number_input("**Возраст:**", min_value=0, max_value=120, step=1)
+    gender = option = st.selectbox("**Пол:**", ("М", "Ж"))
+    height = st.number_input("**Рост:**", min_value=0, max_value=300, step=1)
+    weight = st.number_input("**Вес:**", min_value=0, max_value=300, step=1)
+    date = str(st.date_input("**Дата:**"))
+    device = st.text_input("**Устройство:**")
+    uploaded_file = st.file_uploader("**Выберите файл:**", type=['txt', 'npy'])
     if uploaded_file:
         file_extension = uploaded_file.name.split('.')[-1]
     else:
@@ -89,7 +89,7 @@ if success:
         st.write("Ответ сервиса: ", add_sig_req.status_code)
         info_res = requests.get(api_host + 'get_signal_info').json()
         with st.container(height=200, border=True):
-            st.markdown("〰️ Отведения")
+            st.markdown("**〰️ Отведения**")
             col1, col2, col3, col4 = st.columns(4)
             with col1:
                 lead1 = st.checkbox('I', key='cb1')
@@ -207,7 +207,12 @@ if success:
             st.write("Отсчёты R-пиков:", info_res['r_peaks'])
             st.write("Длительности RR-интервалов:", info_res['nn_intervals'])
         st.dataframe(signal_info_df, hide_index=True)
-
+        model_rhytm = st.selectbox(
+            "Модель предсказания ВСР:",
+            ("m1", "m2", "m3"),
+            index=None,
+            placeholder="Модель",
+        )
 
         st.subheader("2. Классификация ЭКГ")
         api_host = 'http://127.0.0.1:8000/'

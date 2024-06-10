@@ -33,18 +33,8 @@ upload_router = APIRouter(
     tags=['Загрузка ЭКГ']
 )
 
-
-# # Загрузка модели
-# model = model_factory('resnet1d_wang')
-# resnet1d_wang_weights = r'models\pretrained\resnet1d_wang\resnet1d_wang_fold1_16epoch_best_score.pth'
-# model.load_state_dict(torch.load(resnet1d_wang_weights, map_location=torch.device('cpu'))['model'])
-# model.double()
-# model.eval()
-
-
 signals = []
 latest_signal = []
-
 
 @router.get('/pages/add_sig_form', response_class=HTMLResponse)
 async def get_add_sig(request: Request):
@@ -110,6 +100,7 @@ async def predict(nn_model: Optional[str] = None) -> dict:
     return result
 
 
+
 @router.get('/predict_by/{nn_model}')
 async def predict(nn_model: Optional[str] = None) -> dict:
     classes = np.array(['CD', 'HYP', 'MI', 'NORM', 'STTC'])
@@ -131,6 +122,7 @@ async def predict(nn_model: Optional[str] = None) -> dict:
     }
 
     return result
+
 
 
 @router.get('/signals')

@@ -7,6 +7,7 @@ import pandas as pd
 import pdfkit
 import requests
 import streamlit as st
+from streamlit import session_state as ss
 import vl_convert as vlc
 from jinja2 import Environment, select_autoescape, FileSystemLoader
 from ecg.form_schema import DataBytes
@@ -26,15 +27,15 @@ st.title('🫀ЭКГ-сервис')
 
 with st.expander(':arrow_up:Загрузка сигнала'):
     st.info('Заполните предлагаемые поля данных. Далее загрузите сигнал', icon="ℹ️")
-    name = st.text_input("Имя пациента:")
-    sr = st.number_input("Частота дискретизации (sample rate):", min_value=0, max_value=10000, step=1)
-    age = st.number_input("Возраст:", min_value=0, max_value=120, step=1)
-    gender = option = st.selectbox("Пол:", ("М", "Ж"))
-    height = st.number_input("Рост:", min_value=0, max_value=300, step=1)
-    weight = st.number_input("Вес:", min_value=0, max_value=300, step=1)
-    date = str(st.date_input("Дата:"))
-    device = st.text_input("Устройство:")
-    uploaded_file = st.file_uploader("Выберите файл:", type=['txt', 'npy'])
+    name = st.text_input("**Имя пациента:**")
+    sr = st.number_input("**Частота дискретизации (sample rate):**", min_value=0, max_value=10000, step=1)
+    age = st.number_input("**Возраст:**", min_value=0, max_value=120, step=1)
+    gender = option = st.selectbox("**Пол:**", ("М", "Ж"))
+    height = st.number_input("**Рост:**", min_value=0, max_value=300, step=1)
+    weight = st.number_input("**Вес:**", min_value=0, max_value=300, step=1)
+    date = str(st.date_input("**Дата:**"))
+    device = st.text_input("**Устройство:**")
+    uploaded_file = st.file_uploader("**Выберите файл:**", type=['txt', 'npy'])
     if uploaded_file:
         file_extension = uploaded_file.name.split('.')[-1]
     else:
@@ -70,8 +71,6 @@ if uploaded_file is not None:
 
 if success:
     with st.expander('📈Графики'):
-        # st.markdown('Выберите отведения.')
-
         lead_names = ['I', 'II', 'III', 'AVR', 'AVL', 'AVF', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6']
 
         payload = DataBytes(
@@ -90,28 +89,58 @@ if success:
         st.write("Ответ сервиса: ", add_sig_req.status_code)
         info_res = requests.get(api_host + 'get_signal_info').json()
         with st.container(height=200, border=True):
-            st.markdown("〰️ Отведения")
+            st.markdown("**〰️ Отведения**")
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                lead1 = st.checkbox('I')
-                lead2 = st.checkbox('II')
-                lead3 = st.checkbox('III')
+                lead1 = st.checkbox('I', key='cb1')
+                lead2 = st.checkbox('II', key='cb2')
+                lead3 = st.checkbox('III', key='cb3')
             with col2:
-                lead_avr = st.checkbox('AVR')
-                lead_avl = st.checkbox('AVL')
-                lead_avf = st.checkbox('AVF')
+                lead_avr = st.checkbox('AVR', key='cb4')
+                lead_avl = st.checkbox('AVL', key='cb5')
+                lead_avf = st.checkbox('AVF', key='cb6')
             with col3:
-                lead_v1 = st.checkbox('V1')
-                lead_v2 = st.checkbox('V2')
-                lead_v3 = st.checkbox('V3')
+                lead_v1 = st.checkbox('V1', key='cb7')
+                lead_v2 = st.checkbox('V2', key='cb8')
+                lead_v3 = st.checkbox('V3', key='cb9')
             with col4:
-                lead_v4 = st.checkbox('V4')
-                lead_v5 = st.checkbox('V5')
-                lead_v6 = st.checkbox('V6')
+                lead_v4 = st.checkbox('V4', key='cb10')
+                lead_v5 = st.checkbox('V5', key='cb11')
+                lead_v6 = st.checkbox('V6', key='cb12')
+
 
             leads_checkboxes = [lead1, lead2, lead3, lead_avr, lead_avl, lead_avf, lead_v1, lead_v2, lead_v3, lead_v4,
                                 lead_v5, lead_v6]
 
+        def change_cb():
+            if not all_leads_tumbler:
+                ss.cb1 = True
+                ss.cb2 = True
+                ss.cb3 = True
+                ss.cb4 = True
+                ss.cb5 = True
+                ss.cb6 = True
+                ss.cb7 = True
+                ss.cb8 = True
+                ss.cb9 = True
+                ss.cb10 = True
+                ss.cb11 = True
+                ss.cb12 = True
+            else:
+                ss.cb1 = False
+                ss.cb2 = False
+                ss.cb3 = False
+                ss.cb4 = False
+                ss.cb5 = False
+                ss.cb6 = False
+                ss.cb7 = False
+                ss.cb8 = False
+                ss.cb9 = False
+                ss.cb10 = False
+                ss.cb11 = False
+                ss.cb12 = False
+
+        all_leads_tumbler = st.toggle("Все отведения", on_change=change_cb)
         r_peaks_checkbox = st.checkbox('R-пики')
         r_peaks = info_res['r_peaks']
 
@@ -148,8 +177,11 @@ if success:
             st.altair_chart(combined_chart.interactive())
             print('chart saved')
             png_data = vlc.vegalite_to_png(combined_chart.to_json(), scale=2)
+            # print("PNG DATA:", png_data)
+            print(combined_chart.to_json())
             with open(f"static/{lead_name}.png", "wb") as f:
                 f.write(png_data)
+                # f.close()
 
         leads_to_report = []
         # Отображаем графики
@@ -164,10 +196,25 @@ if success:
         leads_to_report = list(map(lambda x: fr'{os.path.abspath('static')}\{x}.png', leads_to_report))
         # print(leads_to_report)
 
-    with st.expander('🧾Диагностическая ифнормация'):
-        st.header('Общие сведения о сигнале', divider="green")
-        st.subheader("Параметры вариабельности сердечного ритма (ВСР)")
-        st.subheader("Классификация ЭКГ")
+    # with st.expander('🧾Диагностическая ифнормация'):
+    with st.container(border=True):
+        st.header('🧾Диагностическая ифнормация', divider="green")
+        st.subheader("1. Вариабельность сердечного ритма (ВСР)")
+
+        signal_info_df = pd.DataFrame([list(info_res['time_domain_features'].values())],
+                                      columns=list(info_res['time_domain_features'].keys()))
+        with st.expander("🔻R-пики"):
+            st.write("Отсчёты R-пиков:", info_res['r_peaks'])
+            st.write("Длительности RR-интервалов:", info_res['nn_intervals'])
+        st.dataframe(signal_info_df, hide_index=True)
+        model_rhytm = st.selectbox(
+            "Модель предсказания ВСР:",
+            ("m1", "m2", "m3"),
+            index=None,
+            placeholder="Модель",
+        )
+
+        st.subheader("2. Классификация ЭКГ")
         api_host = 'http://127.0.0.1:8000/'
         if 'clicked' not in st.session_state:
             st.session_state.clicked = False
@@ -175,49 +222,61 @@ if success:
         def click_button():
             st.session_state.clicked = True
 
-        st.button('Запуск', on_click=click_button)
+        model_option = st.selectbox(
+            "Выбор модели:",
+            ("resnet1d", "inception1d", "vgg16"),
+            index=None,
+            placeholder="Модель",
+        )
+        st.write("В качестве модели классификации выбрана: ", f'`{model_option}`')
+
+        if model_option:
+            st.button("🕹️Запуск классификатора", on_click=click_button, disabled=False)
+        else:
+            st.button("🕹️Запуск классификатора", on_click=click_button, disabled=True)
+
         if st.session_state.clicked:
-            pred_res = requests.get(api_host + 'predict')
+            # pred_res = requests.get(api_host + 'predict', params={'nn_model': model_option})
+            # pred_res = requests.get(api_host + 'predict_by', params={'nn_model': model_option})
+            pred_res = requests.get(api_host + f'predict_by/{model_option}')
             print("Ответ сервиса: ", pred_res.status_code)
             if pred_res.status_code == 200:
                 data = pred_res.json()
                 for i in range(len(data['cls_pred'])):
-                    st.write(f'{data['cls_pred'][i]} - ' + "{:.2f}%".format(data['cls_probs'][i]*100))
+                    st.write(f'**{data['cls_pred'][i]}** - ' + "{:.2f}%".format(data['cls_probs'][i]*100))
 
-                signal_info_df = pd.DataFrame([list(info_res['time_domain_features'].values())],
-                                  columns=list(info_res['time_domain_features'].keys()))
-                st.write("Отсчёты R-пиков:", info_res['r_peaks'])
-                st.write("Длительности RR-интервалов:", info_res['nn_intervals'])
-                st.dataframe(signal_info_df, hide_index=True)
+                # signal_info_df = pd.DataFrame([list(info_res['time_domain_features'].values())],
+                #                   columns=list(info_res['time_domain_features'].keys()))
+                # with st.expander("🔻R-пики"):
+                #     st.write("Отсчёты R-пиков:", info_res['r_peaks'])
+                #     st.write("Длительности RR-интервалов:", info_res['nn_intervals'])
+                # st.dataframe(signal_info_df, hide_index=True)
             else:
                 st.write("Не удалось классифицировать сигнал")
-            generate_pdf_btn = st.button('Сгенерировать pdf-отчёт')
-            if generate_pdf_btn:
-                env = Environment(loader=FileSystemLoader("templates"), autoescape=select_autoescape())
-                template = env.get_template("report.html")
-                st.write(1)
-                # download_pdf_btn = st.download_button
-                if generate_pdf_btn:
-                    html = template.render(
-                        name=name,
-                        age=age,
-                        sample_rate=sr,
-                        gender=gender,
-                        date=date,
-                        height=height,
-                        weight=weight,
-                        device=device,
-                        leads_images=leads_to_report
 
-                    )
-                    config = pdfkit.configuration(wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe")
-                    options = {
-                        "enable-local-file-access": True,
-                    }
-                    pdf = pdfkit.from_string(html, False, configuration=config, options=options)
-                    download_pdf_btn = st.download_button(
-                        "⬇️ Скачать PDF",
-                        data=pdf,
-                        file_name=f"report_{name.lower()}.pdf",
-                        mime="application/octet-stream",
-                    )
+            env = Environment(loader=FileSystemLoader("templates"), autoescape=select_autoescape())
+            template = env.get_template("report.html")
+            html = template.render(
+                name=name,
+                age=age,
+                sample_rate=sr,
+                gender=gender,
+                date=date,
+                height=height,
+                weight=weight,
+                device=device,
+                leads_images=leads_to_report
+
+            )
+            config = pdfkit.configuration(wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe")
+            options = {
+                "enable-local-file-access": True,
+            }
+            pdf = pdfkit.from_string(html, False, configuration=config, options=options)
+            st.info("В отчёте будут отображены только выбранные отведения", icon="ℹ️")
+            download_pdf_btn = st.download_button(
+                "⬇️ Скачать PDF-отчёт",
+                data=pdf,
+                file_name=f"report_{name.lower()}.pdf",
+                mime="application/octet-stream",
+            )

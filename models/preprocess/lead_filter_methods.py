@@ -2,6 +2,8 @@ import pandas as pd
 import torch
 from dotenv import load_dotenv
 from scipy import signal
+from torch_ecg.preprocessors import BaselineRemove
+
 from models.preprocess.GAN_Arch_details import CycleGAN_Unet_Generator
 import os
 
@@ -37,11 +39,8 @@ def gan_preprocess(ecg: torch.Tensor, inference_count: int) -> torch.Tensor:
     return output
 
 
-
-def med_filter(ecg: torch.Tensor) -> torch.Tensor:
-    # TODO: Медианный фильтр
-    pass
-
+def med_filter(ecg) -> torch.Tensor:
+    return BaselineRemove(100)(ecg[None, :])[0]
 
 def check_baseline(ecg: torch.Tensor) -> bool:
     # TODO Метод определяющий дрейф изолинии

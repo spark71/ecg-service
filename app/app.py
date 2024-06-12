@@ -1,22 +1,34 @@
 import base64
 import os
 from io import StringIO
+from typing import Optional
+
 import altair as alt
 import numpy as np
 import pandas as pd
 import pdfkit
 import requests
 import streamlit as st
+import torch
+from dotenv import load_dotenv
 from streamlit import session_state as ss
 import vl_convert as vlc
 from jinja2 import Environment, select_autoescape, FileSystemLoader
 from ecg.form_schema import DataBytes
+import sys
 
-api_host = 'http://127.0.0.1:8000/'
+load_dotenv()
+ROOT_DIR = os.environ.get("ROOT_DIR")
+sys.path.append(ROOT_DIR)
+from models.preprocess.lead_filter_methods import gan_preprocess, med_filter
+
+api_host = os.environ.get("API_HOST")
+
+
 #TODO:
 # 5) предсказание ритма
 # 6) фильтрация сигнала
-# 7) доп задачи
+
 
 st.set_page_config(
     page_title="ЭКГ",
@@ -63,11 +75,11 @@ with st.expander(':arrow_up:Загрузка сигнала'):
         success = False
 
 if uploaded_file is not None:
-    print(uploaded_file)
+    # print(uploaded_file)
     print('FILE')
-    print(type(uploaded_file.getvalue()))
-    print(type(file_content))
-    print(file_content, file_content.shape)
+    # print(type(uploaded_file.getvalue()))
+    # print(type(file_content))
+    # print(file_content, file_content.shape)
 
 if success:
     with st.expander('📈Графики'):
@@ -142,11 +154,29 @@ if success:
 
         all_leads_tumbler = st.toggle("Все отведения", on_change=change_cb)
         r_peaks_checkbox = st.checkbox('R-пики')
+
+        filter_options = st.multiselect(
+            "Выберите фильтрацию",
+            ["original", "median", "gan", "cycle_ganx2", "cycle_ganx3", "cycle_ganx4"],
+            ["original"]
+        )
+        # print("TYPEOP:", type(filter_options))
+        st.write("**Фильтрации:**", filter_options)
+        # print("OPTIONS:", filter_options)
+
         r_peaks = info_res['r_peaks']
 
-        def draw_lead(sig_df: pd.DataFrame, lead_name: str) -> st.altair_chart:
+        def draw_lead(sig_df: pd.DataFrame, lead_name: str, filter_options: Optional[dict]=None) -> st.altair_chart:
             sig_df['time/s'] = sig_df.index / 100
+            for option in filter_options:
+                if 'median' in option:
+                    sig_df['mV'] = med_filter(torch.tensor(sig_df['mV'].values))
+                if 'gan' in option:
+                    sig_df['mV'] = gan_preprocess(torch.tensor(sig_df['mV'].values), inference_count=1)
+                if 'ganx' in option:
+                    sig_df['mV'] = gan_preprocess(torch.tensor(sig_df['mV'].values), inference_count=int(option[-1]))
 
+            print(sig_df)
             chart = alt.Chart(sig_df).mark_line().encode(
                 x='time/s:Q',
                 y='mV'
@@ -177,11 +207,10 @@ if success:
             st.altair_chart(combined_chart.interactive())
             print('chart saved')
             png_data = vlc.vegalite_to_png(combined_chart.to_json(), scale=2)
-            # print("PNG DATA:", png_data)
-            print(combined_chart.to_json())
+            # print(combined_chart.to_json())
             with open(f"static/{lead_name}.png", "wb") as f:
                 f.write(png_data)
-                # f.close()
+
 
         leads_to_report = []
         # Отображаем графики
@@ -190,9 +219,9 @@ if success:
             if leads_checkboxes[i]:
                 sig_df = pd.DataFrame({'time': np.arange(len(file_content[:, 0])), 'mV': file_content[:, i]})
                 lead_name = lead_names[i]
-                draw_lead(sig_df, lead_name)
+                draw_lead(sig_df, lead_name, filter_options)
                 leads_to_report.append(lead_name)
-        print(leads_to_report)
+        # print(leads_to_report)
         leads_to_report = list(map(lambda x: fr'{os.path.abspath('static')}\{x}.png', leads_to_report))
         # print(leads_to_report)
 
@@ -280,3 +309,4 @@ if success:
                 file_name=f"report_{name.lower()}.pdf",
                 mime="application/octet-stream",
             )
+

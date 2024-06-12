@@ -2,7 +2,6 @@ import base64
 import os
 from io import StringIO
 from typing import Optional
-
 import altair as alt
 import numpy as np
 import pandas as pd
@@ -244,7 +243,6 @@ if success:
         )
 
         st.subheader("2. Классификация ЭКГ")
-        api_host = 'http://127.0.0.1:8000/'
         if 'clicked' not in st.session_state:
             st.session_state.clicked = False
 

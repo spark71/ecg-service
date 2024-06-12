@@ -38,23 +38,9 @@ def gan_preprocess(ecg: torch.Tensor, inference_count: int) -> torch.Tensor:
 
 
 
-def some_fun():
-    print(1)
-
-
-
-def get_filter_by_option(option: str):
-    if option == "median":
-        return med_filter
-    if "gan" in option.lower():
-        return gan_preprocess
-
-
-
 def med_filter(ecg: torch.Tensor) -> torch.Tensor:
     # TODO: Медианный фильтр
     pass
-
 
 
 def check_baseline(ecg: torch.Tensor) -> bool:

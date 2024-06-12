@@ -10,8 +10,8 @@ from torch.utils.data import DataLoader, Dataset
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
-from Fastonn import SelfONNTranspose1d as SelfONNTranspose1dlayer
-from Fastonn import SelfONN1d as SelfONN1dlayer
+from .Fastonn import SelfONNTranspose1d as SelfONNTranspose1dlayer
+from .Fastonn import SelfONN1d as SelfONN1dlayer
   
 
 

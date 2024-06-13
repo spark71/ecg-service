@@ -166,7 +166,7 @@ if success:
         r_peaks = info_res['r_peaks']
 
         def draw_lead(sig_df: pd.DataFrame, lead_name: str, filter_options: Optional[dict]=None) -> st.altair_chart:
-            sig_df['time/s'] = sig_df.index / 100
+            sig_df['time, sec'] = sig_df.index / 100
             for option in filter_options:
                 if 'median' in option:
                     sig_df['mV'] = med_filter(torch.tensor(sig_df['mV'].values))
@@ -175,9 +175,12 @@ if success:
                 if 'ganx' in option:
                     sig_df['mV'] = gan_preprocess(torch.tensor(sig_df['mV'].values), inference_count=int(option[-1]))
 
+            filter_options_title = ' + '.join(filter_options)
+            if len(filter_options_title) != 0:
+                filter_options_title = ' (' + filter_options_title + ')'
             print(sig_df)
             chart = alt.Chart(sig_df).mark_line().encode(
-                x='time/s:Q',
+                x='time, sec:Q',
                 y='mV'
             )
             if r_peaks_checkbox:
@@ -188,7 +191,7 @@ if success:
                     width=670,  # задаем ширину графика
                     height=300,  # задаем высоту графика
                     title = {
-                        "text": lead_name,
+                        "text": lead_name + filter_options_title,
                         "anchor": "middle",
                         "align": "center",
                     }
@@ -198,7 +201,7 @@ if success:
                     width=670,
                     height=300,
                     title={
-                        "text": lead_name,
+                        "text": lead_name + filter_options_title,
                         "anchor": "middle",
                         "align": "center",
                     }

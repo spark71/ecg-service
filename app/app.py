@@ -26,8 +26,6 @@ api_host = os.environ.get("API_HOST")
 
 #TODO:
 # 5) предсказание ритма
-# 6) фильтрация сигнала
-
 
 st.set_page_config(
     page_title="ЭКГ",
@@ -159,12 +157,8 @@ if success:
             ["original", "median", "gan", "cycle_ganx2", "cycle_ganx3", "cycle_ganx4"],
             ["original"]
         )
-        # print("TYPEOP:", type(filter_options))
         st.write("**Фильтрации:**", filter_options)
-        # print("OPTIONS:", filter_options)
-
         r_peaks = info_res['r_peaks']
-
         def draw_lead(sig_df: pd.DataFrame, lead_name: str, filter_options: Optional[dict]=None) -> st.altair_chart:
             sig_df['time, sec'] = sig_df.index / 100
             for option in filter_options:

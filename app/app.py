@@ -223,9 +223,8 @@ if success:
                 lead_name = lead_names[i]
                 draw_lead(sig_df, lead_name, filter_options)
                 leads_to_report.append(lead_name)
-        # print(leads_to_report)
         leads_to_report = list(map(lambda x: fr'{os.path.abspath('static')}\{x}.png', leads_to_report))
-        # print(leads_to_report)
+
 
     # with st.expander('🧾Диагностическая ифнормация'):
     with st.container(border=True):
@@ -266,21 +265,12 @@ if success:
             st.button("🕹️Запуск классификатора", on_click=click_button, disabled=True)
 
         if st.session_state.clicked:
-            # pred_res = requests.get(api_host + 'predict', params={'nn_model': model_option})
-            # pred_res = requests.get(api_host + 'predict_by', params={'nn_model': model_option})
             pred_res = requests.get(api_host + f'predict_by/{model_option}')
             print("Ответ сервиса: ", pred_res.status_code)
             if pred_res.status_code == 200:
                 data = pred_res.json()
                 for i in range(len(data['cls_pred'])):
                     st.write(f'**{data['cls_pred'][i]}** - ' + "{:.2f}%".format(data['cls_probs'][i]*100))
-
-                # signal_info_df = pd.DataFrame([list(info_res['time_domain_features'].values())],
-                #                   columns=list(info_res['time_domain_features'].keys()))
-                # with st.expander("🔻R-пики"):
-                #     st.write("Отсчёты R-пиков:", info_res['r_peaks'])
-                #     st.write("Длительности RR-интервалов:", info_res['nn_intervals'])
-                # st.dataframe(signal_info_df, hide_index=True)
             else:
                 st.write("Не удалось классифицировать сигнал")
 

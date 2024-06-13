@@ -19,7 +19,7 @@ import sys
 load_dotenv()
 ROOT_DIR = os.environ.get("ROOT_DIR")
 sys.path.append(ROOT_DIR)
-from models.preprocess.lead_filter_methods import gan_preprocess, med_filter
+from models.preprocess.lead_filter_methods import gan_preprocess, med_filter, check_baseline
 
 api_host = os.environ.get("API_HOST")
 
@@ -161,6 +161,7 @@ if success:
         r_peaks = info_res['r_peaks']
         def draw_lead(sig_df: pd.DataFrame, lead_name: str, filter_options: Optional[dict]=None) -> st.altair_chart:
             sig_df['time, sec'] = sig_df.index / 100
+            baseline_warning = 'На данном отведении обнаружен дрейф'
             for option in filter_options:
                 if 'median' in option:
                     sig_df['mV'] = med_filter(torch.tensor(sig_df['mV'].values))
@@ -179,7 +180,6 @@ if success:
             )
             if r_peaks_checkbox:
                 vertical_lines = alt.Chart(pd.DataFrame({'R': np.array(r_peaks)/100})).mark_rule(color='red').encode(x='R')
-
                 # Совмещаем график и вертикальные линии
                 combined_chart = (chart + vertical_lines).properties(
                     width=670,  # задаем ширину графика
@@ -200,12 +200,15 @@ if success:
                         "align": "center",
                     }
                 )
-            st.altair_chart(combined_chart.interactive())
-            print('chart saved')
-            png_data = vlc.vegalite_to_png(combined_chart.to_json(), scale=2)
-            # print(combined_chart.to_json())
-            with open(f"static/{lead_name}.png", "wb") as f:
-                f.write(png_data)
+            with st.container(border=True):
+                if check_baseline(sig_df['mV'].values):
+                    st.warning(baseline_warning, icon='🚨')
+                st.altair_chart(combined_chart.interactive(), use_container_width=True)
+                print('chart saved')
+                png_data = vlc.vegalite_to_png(combined_chart.to_json(), scale=2)
+                # print(combined_chart.to_json())
+                with open(f"static/{lead_name}.png", "wb") as f:
+                    f.write(png_data)
 
 
         leads_to_report = []

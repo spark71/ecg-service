@@ -10,12 +10,15 @@ from hrvanalysis import get_time_domain_features
 import torch
 import io
 from matplotlib import pyplot as plt
+from scipy.signal import resample
 
 from app.ecg.ecg import ROOT_DIR
 from app.ecg.ecg import EcgSignal as esig
 from app.ecg.form_schema import DataForm, DataBytes
 
 from models.config import model_factory
+
+from models.rhytm.hrv_pred import func_ecg_detect_2
 
 
 UPLOAD_DIR = ROOT_DIR + 'app/ecg/uploads'
@@ -124,6 +127,42 @@ async def predict(nn_model: Optional[str] = None) -> dict:
     return result
 
 
+@router.get('/predict_rhythm_by/{rhytm_model}/age={age}/gender={gender}')
+async def predict_rhythm_by(rhytm_model: str, age: int, gender: int):
+    # LGBMClassifier, LinearSVC
+    count_led = 1
+    name_otvedenie = 5
+    # диагноз - d, ритм - r
+    name_diagnostic = "r"
+    name_model_1 = rhytm_model + '.joblib'
+    ecg_n_1 = pd.DataFrame(resample(latest_signal[-1].reshape(1000, 12), 5000))
+    print("ECG:", ecg_n_1)
+    h = func_ecg_detect_2(ecg_n_1[0], age, gender)
+    hrv_r = h.detect_led(count_led, name_otvedenie, name_model_1, name_diagnostic, "ru")
+    return hrv_r
+
+
+@router.get('/predict_diagnostic_by/{diagnostic_model}/age={age}/gender={gender}')
+async def predict_diagnostic_by(diagnostic_model: str, age: int, gender: int):
+    # LGBMClassifier
+    count_led = 1
+    name_otvedenie = 5
+    # диагноз - d, ритм - r
+    name_diagnostic = "d"
+    name_model_1 = diagnostic_model + '.joblib'
+    ecg_n_1 = pd.DataFrame(resample(latest_signal[-1].reshape(1000, 12), 5000))
+    esig.plot_sample(ecg_n_1[0])
+    print("ECG:", ecg_n_1)
+    h = func_ecg_detect_2(ecg_n_1[0], age, gender)
+    hrv_d = h.detect_led(count_led, name_otvedenie, name_model_1, name_diagnostic, "ru")
+    return hrv_d
+
+
+@router.get('/preprocess')
+async def gan_forward(preprocess_option: str):
+    pass
+
+
 
 @router.get('/signals')
 async def get_signals():
@@ -131,9 +170,4 @@ async def get_signals():
     Получение списка загруженных сигналов
     """
     return signals
-
-
-
-
-
 

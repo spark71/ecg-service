@@ -95,7 +95,7 @@ if success:
         data = payload.json().encode('utf-8')
 
         add_sig_req = requests.post(api_host + 'add_sig_bytes', data=data)
-        st.write("Ответ сервиса: ", add_sig_req.status_code)
+        # st.write("Ответ сервиса: ", add_sig_req.status_code)
         info_res = requests.get(api_host + 'get_signal_info').json()
         with st.container(height=200, border=True):
             st.markdown("**〰️ Отведения**")
@@ -157,7 +157,7 @@ if success:
             ["original", "median", "gan", "cycle_ganx2", "cycle_ganx3", "cycle_ganx4"],
             ["original"]
         )
-        st.write("**Фильтрации:**", filter_options)
+        # st.write("**Фильтрации:**", filter_options)
         r_peaks = info_res['r_peaks']
         def draw_lead(sig_df: pd.DataFrame, lead_name: str, filter_options: Optional[dict]=None) -> st.altair_chart:
             sig_df['time, sec'] = sig_df.index / 100
@@ -234,12 +234,45 @@ if success:
             st.write("Отсчёты R-пиков:", info_res['r_peaks'])
             st.write("Длительности RR-интервалов:", info_res['nn_intervals'])
         st.dataframe(signal_info_df, hide_index=True)
-        model_rhytm = st.selectbox(
-            "Модель предсказания ВСР:",
-            ("m1", "m2", "m3"),
+
+        model_rhytm_hrv = st.selectbox(
+            "Модель предсказания **ритма** на основе ВСР:",
+            ("LGBMClassifier", "LinearSVC"),
             index=None,
             placeholder="Модель",
         )
+
+        if model_rhytm_hrv is not None:
+            gender_to_int = (lambda x: 1 if x == 'M' else 0)(gender)
+            print("GENDER", gender_to_int)
+            pred_rhytm_hrv = requests.get(api_host + f'predict_rhythm_by/{model_rhytm_hrv}/age={age}/gender={gender_to_int}')
+            print("Ответ сервиса: ", pred_rhytm_hrv.status_code)
+            if pred_rhytm_hrv.status_code == 200:
+                data = pred_rhytm_hrv.json()
+                # st.write(data)
+                st.markdown(f':blue-background[**{data}**]')
+            else:
+                st.write("Не удалось классифицировать сигнал")
+
+        model_diagnosis_hrv = st.selectbox(
+            "Модель предсказания **диагноза** на основе ВСР:",
+            ("LGBMClassifier", "LSTM"),
+            index=None,
+            placeholder="Модель",
+        )
+
+        if model_diagnosis_hrv is not None:
+            gender_to_int = (lambda x: 1 if x == 'M' else 0)(gender)
+            pred_diagnosis_hrv = requests.get(api_host + f'predict_diagnostic_by/{model_diagnosis_hrv}/age={age}/gender={gender_to_int}')
+            print("Ответ сервиса: ", pred_diagnosis_hrv.status_code)
+            if pred_diagnosis_hrv.status_code == 200:
+                data = pred_diagnosis_hrv.json()
+                # st.write(data)
+                st.markdown(f':blue-background[**{data}**]')
+            else:
+                st.write("Не удалось классифицировать сигнал")
+
+
 
         st.subheader("2. Классификация ЭКГ")
         if 'clicked' not in st.session_state:

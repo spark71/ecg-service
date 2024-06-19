@@ -317,7 +317,8 @@ if success:
                     "NORM": "Нормальный ЭКС",
                     "STTC": "Изменения в ST-сегменте",
                     "HYP": "Гипертрофия",
-                    "CD": "Нарушениe проводимости"
+                    "CD": "Нарушениe проводимости",
+                    "MI": "Инфаркт миокарда"
                 }
                 for i in range(len(data['cls_pred'])):
                     descr = class_description[data['cls_pred'][i]]

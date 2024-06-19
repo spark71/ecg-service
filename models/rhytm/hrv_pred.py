@@ -187,7 +187,6 @@ def path_s(led, name_led, name_model, name_d, lan, HRV, path_def) :
 
 class func_ecg_detect_2():
     def __init__(self, ECG, age, sex):
-        # self.path_def = r'C:/Users/redmi/PycharmProjects/ecg-tool-api/models/rhytm/'
         self.path_def = ROOT_DIR + '/models/rhytm/'
         self.ECG = ECG
         self.age = age

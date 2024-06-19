@@ -35,6 +35,10 @@
           max-width: 100%;
         }
 
+        text {
+          font-size: 14pt;
+        }
+
 
     </style>
 </head>
@@ -77,6 +81,18 @@
   </tr>
 </table>
 
+
+<h2>1.Вариабельность середечного ритма (ВСР)</h2>
+<text>{{hrv_rhythm_statement | safe}}</text>
+
+<h2>2.Предсказания диагноза на основе параметров ВСР</h2>
+<text>{{hrv_diagnosis_statement | safe}}</text>
+
+<h2>3. Общий результат классификации</h2>
+<text>{{main_clsf_statement | safe}}</text>
+
+<h2></h2>
+<br>
 <h1>Отведения</h1>
 
 {% for image in leads_images %}

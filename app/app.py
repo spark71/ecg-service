@@ -234,7 +234,7 @@ if success:
             st.write("Отсчёты R-пиков:", info_res['r_peaks'])
             st.write("Длительности RR-интервалов:", info_res['nn_intervals'])
         st.dataframe(signal_info_df, hide_index=True)
-
+        rhythm_statement = ''
         model_rhytm_hrv = st.selectbox(
             "Модель предсказания **ритма** на основе ВСР:",
             ("LGBMClassifier", "LinearSVC"),
@@ -250,16 +250,24 @@ if success:
             if pred_rhytm_hrv.status_code == 200:
                 data = pred_rhytm_hrv.json()
                 # st.write(data)
+                if data == "Синусовый ритм":
+                    rhythm_statement = f"Результат предсказания: <b>{data}</b>. Отклонений не обнаружено."
+                    print(rhythm_statement)
+                else:
+                    rhythm_statement = f'Результат предсказания: <b>{data}</b>. Является отклонением от медицинской нормы. Требуется осмотр лечащего специалиста'
                 st.markdown(f':blue-background[**{data}**]')
             else:
                 st.write("Не удалось классифицировать сигнал")
-
+        diagnosis_statement = ''
         model_diagnosis_hrv = st.selectbox(
             "Модель предсказания **диагноза** на основе ВСР:",
             ("LGBMClassifier", "LSTM"),
             index=None,
             placeholder="Модель",
         )
+
+
+
 
         if model_diagnosis_hrv is not None:
             gender_to_int = (lambda x: 1 if x == 'M' else 0)(gender)
@@ -268,6 +276,10 @@ if success:
             if pred_diagnosis_hrv.status_code == 200:
                 data = pred_diagnosis_hrv.json()
                 # st.write(data)
+                if data == "Нормальная ЭКГ":
+                    diagnosis_statement = f"Результат предсказания: <b>{data}</b>. Отклонений не обнаружено."
+                else:
+                    diagnosis_statement = f'Результат предсказания: <b>{data}</b>. Является отклонением от медицинской нормы. Требуется осмотр лечащего специалиста'
                 st.markdown(f':blue-background[**{data}**]')
             else:
                 st.write("Не удалось классифицировать сигнал")
@@ -294,13 +306,26 @@ if success:
         else:
             st.button("🕹️Запуск классификатора", on_click=click_button, disabled=True)
 
+
+        clsf_statement = ''
         if st.session_state.clicked:
             pred_res = requests.get(api_host + f'predict_by/{model_option}')
             print("Ответ сервиса: ", pred_res.status_code)
             if pred_res.status_code == 200:
                 data = pred_res.json()
+                class_description = {
+                    "NORM": "Нормальный ЭКС",
+                    "STTC": "Изменения в ST-сегменте",
+                    "HYP": "Гипертрофия",
+                    "CD": "Нарушениe проводимости"
+                }
                 for i in range(len(data['cls_pred'])):
-                    st.write(f'**{data['cls_pred'][i]}** - ' + "{:.2f}%".format(data['cls_probs'][i]*100))
+                    descr = class_description[data['cls_pred'][i]]
+                    statement_md = f'**{data['cls_pred'][i]} ({descr})** - ' + "{:.2f}%".format(data['cls_probs'][i]*100)
+                    statement_html = f'<b>{data['cls_pred'][i]} ({descr})</b>. Вероятность - ' + "{:.2f}%".format(data['cls_probs'][i]*100) + '<br>'
+                    clsf_statement += statement_html
+                    st.write(statement_md)
+                clsf_statement += "<text style='color:Tomato;'>Рекомендуется обратиться к лечащему специалисту для подтверждения диагноза.</text>"
             else:
                 st.write("Не удалось классифицировать сигнал")
 
@@ -315,8 +340,10 @@ if success:
                 height=height,
                 weight=weight,
                 device=device,
-                leads_images=leads_to_report
-
+                leads_images=leads_to_report,
+                hrv_rhythm_statement=rhythm_statement,
+                hrv_diagnosis_statement=diagnosis_statement,
+                main_clsf_statement=clsf_statement
             )
             config = pdfkit.configuration(wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe")
             options = {

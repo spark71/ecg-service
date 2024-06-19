@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import os
+from dotenv import load_dotenv
 from joblib import load
 import neurokit2 as nk
 import pyhrv.tools as tools
@@ -8,6 +10,10 @@ import matplotlib
 pd.options.mode.chained_assignment = None
 import warnings
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+
+load_dotenv()
+
+ROOT_DIR = os.environ.get('ROOT_DIR').replace('\\', '/')
 
 
 class ECG_RR():
@@ -181,7 +187,8 @@ def path_s(led, name_led, name_model, name_d, lan, HRV, path_def) :
 
 class func_ecg_detect_2():
     def __init__(self, ECG, age, sex):
-        self.path_def = r'C:/Users/redmi/PycharmProjects/ecg-tool-api/models/rhytm/'
+        # self.path_def = r'C:/Users/redmi/PycharmProjects/ecg-tool-api/models/rhytm/'
+        self.path_def = ROOT_DIR + '/models/rhytm/'
         self.ECG = ECG
         self.age = age
         self.sex = sex
@@ -211,6 +218,7 @@ class func_ecg_detect_2():
         return path_2
 
 
-
+# if __name__ == '__main__':
+#     print("RD:", ROOT_DIR.replace('\\', '/'))
 
 

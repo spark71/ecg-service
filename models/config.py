@@ -1,4 +1,8 @@
+import os
+
 import torch
+from dotenv import load_dotenv
+
 from models.nn.xresnet1d import xresnet1d101
 from models.nn.inception1d import inception1d
 from models.nn.resnet1d import resnet1d_wang
@@ -6,6 +10,10 @@ from models.nn.rnn1d import RNN1d
 from torch_ecg.utils.utils_nn import adjust_cnn_filter_lengths
 from torch_ecg.model_configs import ECG_CRNN_CONFIG
 from torch_ecg.models.ecg_crnn import ECG_CRNN
+
+load_dotenv()
+ROOT_DIR = os.environ.get("ROOT_DIR")
+
 
 def model_factory(model_name):
     model = None
@@ -15,9 +23,10 @@ def model_factory(model_name):
     if model_name.lower()=='resnet1d':
         # model = resnet1d_wang(input_channels=12, num_classes=5)
         resnet1d_wang_model = resnet1d_wang(input_channels=12, num_classes=5)
-        resnet1d_wang_weights = r'C:\Users\redmi\PycharmProjects\ecg-tool-api\models\pretrained\resnet1d_wang\resnet1d_wang_fold1_16epoch_best_score.pth'
+        # resnet1d_wang_weights = r'C:\Users\redmi\PycharmProjects\ecg-tool-api\models\pretrained\resnet1d_wang\resnet1d_wang_fold1_16epoch_best_score.pth'
+        resnet1d_wang_weights = (ROOT_DIR +
+                                 r'/models/pretrained/resnet1d_wang/resnet1d_wang_fold1_16epoch_best_score.pth')
         # xresnet1d_model.load_state_dict(torch.load(xresnet1d_model_weights_path, map_location=torch.device('cpu'))['model'])
-
         resnet1d_wang_model.load_state_dict(
             torch.load(resnet1d_wang_weights, map_location=torch.device('cpu'))['model'])
         model = resnet1d_wang_model.double().eval()
@@ -26,7 +35,9 @@ def model_factory(model_name):
     if model_name.lower()=='inception1d':
         # model = inception1d(input_channels=12, num_classes=5)
         inception1d_model = inception1d(input_channels=12, num_classes=5)
-        inception1d_model_weights_path = r'C:\Users\redmi\PycharmProjects\ecg-tool-api\models\pretrained\inception1d\inception1d_fold1_15epoch_best_score.pth'
+        # inception1d_model_weights_path = r'C:\Users\redmi\PycharmProjects\ecg-tool-api\models\pretrained\inception1d\inception1d_fold1_15epoch_best_score.pth'
+        inception1d_model_weights_path = (ROOT_DIR +
+                                          r'/models/pretrained/inception1d/inception1d_fold1_15epoch_best_score.pth')
         inception1d_model.load_state_dict(
             torch.load(inception1d_model_weights_path, map_location=torch.device('cpu'))['model'])
         model = inception1d_model.double().eval()
@@ -36,7 +47,8 @@ def model_factory(model_name):
         model = RNN1d(input_channels=12, num_classes=5)
 
     if model_name.lower() == 'vgg16':
-        vgg16_model_weights_path = r'C:\Users\redmi\PycharmProjects\ecg-tool-api\models\pretrained\vgg16\vgg16_fold1_10epoch_best_score.pth'
+        vgg16_model_weights_path = (ROOT_DIR +
+                                    r'/models/pretrained/vgg16/vgg16_fold1_10epoch_best_score.pth')
         config = adjust_cnn_filter_lengths(ECG_CRNN_CONFIG, fs=100)
         config.cnn.name = "vgg16"
         classes = ['CD', 'HYP', 'MI', 'NORM', 'STTC']

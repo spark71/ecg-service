@@ -24,9 +24,6 @@ from models.preprocess.lead_filter_methods import gan_preprocess, med_filter, ch
 api_host = os.environ.get("API_HOST")
 
 
-#TODO:
-# 5) предсказание ритма
-
 st.set_page_config(
     page_title="ЭКГ",
     page_icon="🧊",
@@ -225,7 +222,7 @@ if success:
 
     # with st.expander('🧾Диагностическая ифнормация'):
     with st.container(border=True):
-        st.header('🧾Диагностическая ифнормация', divider="green")
+        st.header('🧾Диагностическая информация', divider="green")
         st.subheader("1. Вариабельность сердечного ритма (ВСР)")
 
         signal_info_df = pd.DataFrame([list(info_res['time_domain_features'].values())],
@@ -237,7 +234,7 @@ if success:
         rhythm_statement = ''
         model_rhytm_hrv = st.selectbox(
             "Модель предсказания **ритма** на основе ВСР:",
-            ("LGBMClassifier", "LinearSVC"),
+            ("LGBMClassifier", "LinearSVC", "LSTM"),
             index=None,
             placeholder="Модель",
         )
@@ -261,7 +258,7 @@ if success:
         diagnosis_statement = ''
         model_diagnosis_hrv = st.selectbox(
             "Модель предсказания **диагноза** на основе ВСР:",
-            ("LGBMClassifier", "LSTM"),
+            ("LGBMClassifier", "LSTM", "HistGradientBoostingClassifier", "ExtraTreesClassifier"),
             index=None,
             placeholder="Модель",
         )

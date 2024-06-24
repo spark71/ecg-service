@@ -24,9 +24,6 @@ from models.rhytm.hrv_pred import func_ecg_detect_2
 UPLOAD_DIR = ROOT_DIR + 'app/ecg/uploads'
 templates = Jinja2Templates(directory="app/templates")
 
-#TODO:
-#       - choose a model
-
 
 router = APIRouter(
     tags=['ЭКГ-сигналы']
@@ -130,32 +127,39 @@ async def predict(nn_model: Optional[str] = None) -> dict:
 @router.get('/predict_rhythm_by/{rhytm_model}/age={age}/gender={gender}')
 async def predict_rhythm_by(rhytm_model: str, age: int, gender: int):
     # LGBMClassifier, LinearSVC
-    count_led = 1
-    name_otvedenie = 5
+    count_led = 12
+    name_otvedenie = 12
     # диагноз - d, ритм - r
     name_diagnostic = "r"
     name_model_1 = rhytm_model + '.joblib'
+    print("RHYTMMODEL:", rhytm_model)
+    if rhytm_model == "LSTM":
+        name_model_1 = 'lstm_model_r.onnx'
     ecg_n_1 = pd.DataFrame(resample(latest_signal[-1].reshape(1000, 12), 5000))
+    print("RIF:", name_model_1)
     print("ECG:", ecg_n_1)
-    h = func_ecg_detect_2(ecg_n_1[0], age, gender)
-    hrv_r = h.detect_led(count_led, name_otvedenie, name_model_1, name_diagnostic, "ru")
+    h = func_ecg_detect_2(ecg_n_1, age, gender, model=name_model_1)
+    hrv_r = h.detect_led(count_led, name_otvedenie, name_diagnostic, "ru")
     return hrv_r
 
 
 @router.get('/predict_diagnostic_by/{diagnostic_model}/age={age}/gender={gender}')
 async def predict_diagnostic_by(diagnostic_model: str, age: int, gender: int):
     # LGBMClassifier
-    count_led = 1
-    name_otvedenie = 5
+    count_led = 12
+    name_otvedenie = 12
     # диагноз - d, ритм - r
     name_diagnostic = "d"
     name_model_1 = diagnostic_model + '.joblib'
+    print("RHYTMMODEL:", diagnostic_model)
+    if diagnostic_model == "LSTM":
+        name_model_1 = 'lstm_model_d.onnx'
     ecg_n_1 = pd.DataFrame(resample(latest_signal[-1].reshape(1000, 12), 5000))
-    esig.plot_sample(ecg_n_1[0])
+    print("RIF:", name_model_1)
     print("ECG:", ecg_n_1)
-    h = func_ecg_detect_2(ecg_n_1[0], age, gender)
-    hrv_d = h.detect_led(count_led, name_otvedenie, name_model_1, name_diagnostic, "ru")
-    return hrv_d
+    h = func_ecg_detect_2(ecg_n_1, age, gender, model=name_model_1)
+    hrv_r = h.detect_led(count_led, name_otvedenie, name_diagnostic, "ru")
+    return hrv_r
 
 
 @router.get('/preprocess')

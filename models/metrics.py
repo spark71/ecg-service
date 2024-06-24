@@ -6,6 +6,7 @@ from typing import Tuple
 import numpy as np
 import warnings
 from sklearn.metrics import roc_auc_score, accuracy_score
+from tqdm import tqdm
 
 
 def Metrics(y_true: np.ndarray, y_scores: np.ndarray) -> Tuple[float, float]:
@@ -155,3 +156,76 @@ def metric_summary(
         average_recalls.tolist(),
         thresholds.tolist(),
     )
+
+
+
+def MR(y_true, y_pred):
+    """ Exact Match Ratio"""
+    # for i in y_pred:
+    #     i = np.zeros(len(i))
+    mr = np.all(y_pred == y_true, axis=1).mean()
+    return mr
+
+
+def zero_one_loss(y_true, y_pred):
+    """ 0/1 loss function """
+    loss = np.any(y_true != y_pred, axis=1).mean()
+    return loss
+
+
+def multilabel_accuracy(y_true, y_pred):
+    temp = 0
+    for i in range(y_true.shape[0]):
+        temp += sum(np.logical_and(y_true[i], y_pred[i])) / sum(np.logical_or(y_true[i], y_pred[i]))
+    return temp / y_true.shape[0]
+
+
+def multilabel_hamming_loss(y_true, y_pred):
+    temp = 0
+    for i in range(y_true.shape[0]):
+        temp += np.size(y_true[i] == y_pred[i]) - np.count_nonzero(y_true[i] == y_pred[i])
+    return temp / (y_true.shape[0] * y_true.shape[1])
+
+
+def multilabel_precision(y_true, y_pred):
+    temp = 0
+    for i in range(y_true.shape[0]):
+        if sum(y_pred[i]) == 0:
+            continue
+        temp += sum(np.logical_and(y_true[i], y_pred[i])) / sum(y_pred[i])
+    return temp / y_true.shape[0]
+
+
+def multilabel_recall(y_true, y_pred):
+    temp = 0
+    for i in range(y_true.shape[0]):
+        if sum(y_true[i]) == 0:
+            continue
+        temp += sum(np.logical_and(y_true[i], y_pred[i])) / sum(y_true[i])
+    return temp / y_true.shape[0]
+
+
+
+def evaluate_model(model, loader):
+    gt_all = []
+    pred_all = []
+    for id in tqdm(range(len(loader))):
+        ecg, label = loader[id]
+        # print(ecg, label)
+        prediction = model(ecg)
+        pred_all.append(prediction.detach().numpy())
+        gt_all.append(label.detach().numpy().astype(int))
+    gt_all_array = np.vstack(gt_all)
+    pred_all_array = np.vstack(pred_all)
+    roc_score = roc_auc_score(gt_all_array, pred_all_array, average="macro")
+    acc, mean_acc = Metrics(gt_all_array, pred_all_array)
+    class_auc = AUC(gt_all_array, pred_all_array)
+    summary = metric_summary(gt_all_array, pred_all_array)
+    print(f"class wise accuracy: {acc}")
+    print(f"accuracy: {mean_acc}")
+    print(f"roc_score : {roc_score}")
+    print(f"class wise AUC : {class_auc}")
+    print(f"F1 score (Max): {summary[0]}")
+    print(f"class wise precision, recall, f1 score : {summary}")
+    return gt_all_array, pred_all_array
+

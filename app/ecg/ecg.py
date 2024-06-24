@@ -6,6 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import peakutils
 from enum import Enum
+
+from dotenv import load_dotenv
 from sklearn.metrics import mean_absolute_error
 import seaborn as sns
 import h5py
@@ -14,12 +16,14 @@ from torch.utils.data import Dataset
 from nnAudio.features.cqt import CQT1992v2
 from models.config import CqtCFG, RawCfg
 import neurokit2 as nk
-from ecg_augmentations.ecg_augmentations import *
-from torch_ecg.augmenters import BaselineWanderAugmenter
-from ecg_augmentations.ecg_augmentations.augmentations.crop import RandomCrop
-from ecg_augmentations.ecg_augmentations.augmentations.noise import GaussianNoise
+# from ecg_augmentations.ecg_augmentations import *
+# from torch_ecg.augmenters import BaselineWanderAugmenter
+# from ecg_augmentations.ecg_augmentations.augmentations.crop import RandomCrop
+# from ecg_augmentations.ecg_augmentations.augmentations.noise import GaussianNoise
+load_dotenv()
+
 # Папка с проектом
-ROOT_DIR = r'C:\Users\redmi\PycharmProjects\ecg-tool-api'
+ROOT_DIR = os.environ.get("ROOT_DIR")
 
 @enum.unique
 class Datasets(enum.Enum):
@@ -269,6 +273,7 @@ class EcgSignal:
             plt.rcParams.update({'font.size': 14})
             for i in range(sample.shape[1]):
                 sns.lineplot(x=np.arange(sample.shape[0]), y=sample[:, i], ax=axes[i]).set_title(leads_list[i])
+                sns.set(xlabel="mV")
             plt.show()
         if leads is None:
             fig, ax = plt.subplots(figsize=figsize)

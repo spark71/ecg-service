@@ -6,6 +6,8 @@ from joblib import load
 import neurokit2 as nk
 import pyhrv.tools as tools
 import pyhrv.frequency_domain as fd
+import torch
+import onnxruntime as ort
 import matplotlib
 pd.options.mode.chained_assignment = None
 import warnings
@@ -120,7 +122,9 @@ def ecg_HRV_0(ecg_signal,n_0,n_1):
     #df = pd.DataFrame(ecg_signal[0])
     df = ecg_signal
     if n_1 - n_0 != 1:
-        for j in range(n_0,n_1):
+        for j in range(n_0, n_1):
+            df[j] = pd.to_numeric(df[j], errors='coerce')
+            # ecg_signals_1, info = nk.ecg_process(df[j].to_numpy()[~np.isnan(df[j].to_numpy())], sampling_rate=500)
             ecg_signals_1, info = nk.ecg_process(df[j], sampling_rate=500)
             HTV = ecg_HRV_df(ecg_signals_1,info,j)
             df_HTV[HTV.columns] = HTV
@@ -141,8 +145,8 @@ def stardant_N(X_columns,fix_displacement_min, fix_displacement):
 
 
 name_model = {
-    "r":["LGBMClassifier.joblib","LinearSVC.joblib","lstm_model_r.keras"],
-    "d":["LGBMClassifier.joblib","ExtraTreesClassifier.joblib","HistGradientBoostingClassifier.joblib","lstm_model_d.keras"]
+    "r":["LGBMClassifier.joblib", "LinearSVC.joblib", "lstm_model_r.onnx"],
+    "d":["LGBMClassifier.joblib","ExtraTreesClassifier.joblib","HistGradientBoostingClassifier.joblib","lstm_model_d.onnx"]
 }
 
 
@@ -172,34 +176,57 @@ def path_s(led, name_led, name_model, name_d, lan, HRV, path_def) :
         path_2 = path_def + "rhythm_2/"+ path_n + "."+name_model.split(".")[1]
     if "."+name_model.split(".")[1] == ".joblib":
             model = load(path)
+            print("Loaded model")
+            print("Loaded model")
+            print("Loaded model")
             y_predict = model.predict(HRV)
+            print(y_predict)
             return uniques[lan][y_predict[0]]
     elif ("."+name_model.split(".")[1] == ".keras")and led == "12_led/":
-        model = keras.models.load_model(path_2)
-        y_predict = model.predict(HRV[list(list_corr["0"])[:-1]])
+            model = keras.models.load_model(path_2)
+            y_predict = model.predict(HRV[list(list_corr["0"])[:-1]])
+            max_in_ = pd.DataFrame(y_predict[0]).idxmax()[0]
+            #pred_namber = pd.DataFrame(y_predict[0])*100
+            #pred_namber[lan] = uniques[lan]
+            return uniques[lan][max_in_]#,#pred_namber
+    elif ("." + name_model.split(".")[1] == ".onnx") and led == "12_led/":
+        # keras.models.load_model(path_2)
+        print(1111111111111111111111111111111111111111111111111111111111111111111111111111111)
+        print(path_2)
+        model = ort.InferenceSession(path_2)
+        print()
+        print(22222222222222222222222222222222222222222222222222222222222222222222222222222)
+        # model.predict(HRV[list(list_corr["0"])[:-1]])
+        H = HRV[list(list_corr["0"])[:-1]].to_numpy().astype(np.float32)
+        y_predict = model.run(["output_names"], {'x': H})[0]
+        y_predict = torch.from_numpy(y_predict)
         max_in_ = pd.DataFrame(y_predict[0]).idxmax()[0]
-        #pred_namber = pd.DataFrame(y_predict[0])*100
-        #pred_namber[lan] = uniques[lan]
-        return uniques[lan][max_in_]#,#pred_namber
+        # закоментировать pred_namber если не нужен множественный вывод
+        pred_namber = pd.DataFrame(y_predict[0]) * 100
+        pred_namber[lan] = uniques[lan]
+        pred_namber = pred_namber[pred_namber[0] > 50]
+        # print(uniques[lan][max_in_], pred_namber)
+        return uniques[lan][max_in_]
 
 
 
 
 class func_ecg_detect_2():
-    def __init__(self, ECG, age, sex):
+    def __init__(self, ECG, age, sex, model):
         self.path_def = ROOT_DIR + '/models/rhytm/'
         self.ECG = ECG
         self.age = age
         self.sex = sex
+        self.model = model
         self.fix_displacement = pd.read_csv(str(self.path_def + "fix_displacement.csv"), index_col=0)
         self.fix_displacement_min = pd.read_csv(str(self.path_def + "fix_displacement_min.csv"), index_col=0)
 
-    def detect_led(self, count_led, name_led, name_model_1, name_d, lan):
+    def detect_led(self, count_led, name_led, name_d, lan):
         """
         :param count_led: число отведений
         :param name_led: отведение int 1-12
-        :param name_model_1:
-        :param name_d:
+        :param name_model_1: LGBBM / SVC / LSTM
+        :param name_d: r или d
         :param lan:
         :return:
         """
@@ -209,10 +236,17 @@ class func_ecg_detect_2():
         self.HRV = stardant_N(self.HRV, self.fix_displacement_min[self.HRV.columns],
                               self.fix_displacement[self.HRV.columns])
 
-        for i in name_model[name_d]:
-            if name_model_1 in i:
-                model = i
-        path_2 = path_s(str(count_led) + "_led/", name_led, model, name_d, lan, self.HRV, self.path_def)
+        # for i in name_model[name_d]:
+        #     if name_model_1 in i:
+        #         print(name_model_1)
+        #         model = i
+
+        # selected_model = name_model[name_d][name_model_1]
+        name_model_1 = self.model
+        print("NAMEMODEL_1: ", name_model_1)
+
+        # path_2 = path_s(str(count_led) + "_led/", name_led, model, name_d, lan, self.HRV, self.path_def)
+        path_2 = path_s(str(count_led) + "_led/", name_led, name_model_1, name_d, lan, self.HRV, self.path_def)
 
         return path_2
 
